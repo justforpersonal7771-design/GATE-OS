@@ -4,33 +4,52 @@ import { useEffect, useState, useMemo } from "react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { 
+  Loader2, RefreshCw, AlertCircle, Sparkles, Folder, Tag, Star, 
+  Play, BookOpen, Clock, AlertTriangle, ArrowRight, ShieldCheck 
+} from "lucide-react";
+import { LearningEngine, PersonalizedIntelligence } from "@/lib/learning/LearningEngine";
+import { AdaptiveRevisionItem } from "@/lib/learning/AdaptiveEngine";
 
 export default function RevisionBuilderPage() {
   const router = useRouter();
   const { mistakes, bookmarks, loadStudyData } = useStudyStore();
   const { dashboardMetrics, refreshAnalytics } = useAnalyticsStore();
+  
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"mistakes" | "bookmarks" | "weak_topics">("mistakes");
+  
+  const [intel, setIntel] = useState<PersonalizedIntelligence | null>(null);
+  const [loadingIntel, setLoadingIntel] = useState(true);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     loadStudyData();
     refreshAnalytics();
+
+    setLoadingIntel(true);
+    LearningEngine.getPersonalizedIntelligence()
+      .then(res => {
+        setIntel(res);
+        setLoadingIntel(false);
+      })
+      .catch((e) => {
+        console.error(e);
+        setLoadingIntel(false);
+      });
   }, [loadStudyData, refreshAnalytics]);
 
   const weakTopics = useMemo(() => {
     if (!dashboardMetrics) return [];
     return dashboardMetrics.topicPerformance.filter(t => {
       const acc = t.attempted > 0 ? (t.correct / t.attempted) * 100 : 0;
-      return t.attempted >= 3 && acc < 50;
+      return t.attempted >= 1 && acc < 50;
     });
   }, [dashboardMetrics]);
 
   if (!mounted) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-[var(--background)]">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
       </div>
     );
@@ -40,60 +59,191 @@ export default function RevisionBuilderPage() {
     router.push(`/revision/session?mode=${mode}`);
   };
 
+  const priorityColor = (p: string) => {
+    switch (p) {
+      case "Very High Priority": return "bg-red-500/15 text-red-500 border border-red-500/20";
+      case "High": return "bg-amber-500/15 text-amber-500 border border-amber-500/20";
+      case "Medium": return "bg-blue-500/15 text-blue-500 border border-blue-500/20";
+      case "Low": return "bg-slate-500/15 text-slate-500 border border-slate-500/20";
+      default: return "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20";
+    }
+  };
+
   return (
-    <div className="w-full mx-auto p-4 md:p-8">
-       <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] mb-2">Revision Engine</h1>
-       <p className="text-[var(--text-secondary)] mb-8">Generate custom revision sessions focused on your weak areas and saved questions.</p>
+    <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8 bg-[var(--background)] font-sans">
+      
+      {/* Title */}
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
+          <RefreshCw className="w-8 h-8 text-indigo-500" />
+          <span>Adaptive Revision Engine</span>
+        </h1>
+        <p className="mt-2 text-sm text-[var(--text-secondary)] font-semibold">
+          Reorder and prioritize revision topics dynamically using recency decay, difficulty, and confidence tracking.
+        </p>
+      </div>
 
-       <div className="space-y-4">
-         <div 
-           className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${mode === "mistakes" ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : "border-[var(--border)] bg-[var(--surface)] hover:border-indigo-300"}`}
-           onClick={() => setMode("mistakes")}
-         >
-            <div className="flex justify-between items-start">
-               <div>
-                 <h3 className="font-bold text-lg text-[var(--text-primary)]">Mistakes Bank</h3>
-                 <p className="text-[var(--text-muted)] mt-1 text-sm">Review questions you answered incorrectly or marked for review.</p>
-               </div>
-               <span className="bg-[var(--surface)] px-3 py-1 rounded-full text-indigo-700 dark:text-indigo-400 font-bold shadow-sm">{mistakes.filter(m => !m.mastered).length} Pending</span>
+      {/* Main Revision Control desk */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        
+        {/* Left Side: Revision Modes selection (Spans 7) */}
+        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-primary)] mb-5">
+              Select Revision Parameters
+            </h3>
+            
+            <div className="space-y-4">
+              <div 
+                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${mode === "mistakes" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+                onClick={() => setMode("mistakes")}
+              >
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--text-primary)]">Mistakes Bank Queue</h4>
+                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Revise questions flagged as incorrect during exams.</p>
+                </div>
+                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                  {mistakes.filter(m => !m.mastered).length} Items
+                </span>
+              </div>
+
+              <div 
+                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${mode === "bookmarks" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+                onClick={() => setMode("bookmarks")}
+              >
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--text-primary)]">Bookmarked Items</h4>
+                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Revise bookmarks, folders, and formula notes.</p>
+                </div>
+                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                  {bookmarks.length} Items
+                </span>
+              </div>
+
+              <div 
+                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${mode === "weak_topics" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+                onClick={() => setMode("weak_topics")}
+              >
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--text-primary)]">Weak Topics (&lt;50% accuracy)</h4>
+                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Focus exclusively on topics where you scored poorly.</p>
+                </div>
+                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                  {weakTopics.length} Topics
+                </span>
+              </div>
             </div>
-         </div>
+          </div>
 
-         <div 
-           className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${mode === "bookmarks" ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : "border-[var(--border)] bg-[var(--surface)] hover:border-indigo-300"}`}
-           onClick={() => setMode("bookmarks")}
-         >
-            <div className="flex justify-between items-start">
-               <div>
-                 <h3 className="font-bold text-lg text-[var(--text-primary)]">Bookmarks</h3>
-                 <p className="text-[var(--text-muted)] mt-1 text-sm">Revise questions you have manually bookmarked with your personal notes.</p>
-               </div>
-               <span className="bg-[var(--surface)] px-3 py-1 rounded-full text-indigo-700 dark:text-indigo-400 font-bold shadow-sm">{bookmarks.length} Saved</span>
+          <div className="pt-6 border-t border-[var(--border-subtle)] mt-8 flex justify-end">
+            <button
+              onClick={handleStartRevision}
+              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase tracking-wider rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs"
+            >
+              <Play className="w-4 h-4 fill-white" />
+              <span>Launch Revision Session</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right Side: Quick Adaptive recommendations (Spans 5) */}
+        <div className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div className="space-y-4">
+            <h3 className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-primary)]">
+              Engine Suggestions
+            </h3>
+
+            {!loadingIntel && intel && (
+              <div className="space-y-4">
+                <div className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl flex items-start gap-3">
+                  <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Revision Due Today</span>
+                    <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-1">
+                      {intel.todaysFocus.topic}
+                    </span>
+                    <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">{intel.todaysFocus.reason}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Estimated Queue Review Time</span>
+                    <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-0.5">
+                      {intel.revisionQueue.reduce((acc, q) => acc + q.estimatedTimeMin, 0)} Minutes
+                    </span>
+                    <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">Required time to resolve all pending high-priority review tasks.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Reordered Revision Queue list */}
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/50 flex justify-between items-center">
+          <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)] flex items-center gap-1.5">
+            <BookOpen className="w-4 h-4 text-indigo-500" />
+            <span>Dynamic Revision Queue</span>
+          </h3>
+        </div>
+
+        <div className="overflow-x-auto">
+          {!loadingIntel && intel && intel.revisionQueue.length > 0 ? (
+            <table className="w-full text-xs text-left min-w-[700px]">
+              <thead className="text-[9px] font-black uppercase bg-[var(--surface-secondary)] text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
+                <tr>
+                  <th className="px-5 py-3.5">Topic Details</th>
+                  <th className="px-5 py-3.5 text-center">Priority</th>
+                  <th className="px-5 py-3.5">Revision Reason</th>
+                  <th className="px-5 py-3.5 text-center">Est. Time</th>
+                  <th className="px-5 py-3.5 text-center">Confidence</th>
+                  <th className="px-5 py-3.5 text-center">Solved Counts</th>
+                  <th className="px-5 py-3.5 text-right">Next suggested</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {intel.revisionQueue.map((item) => (
+                  <tr key={item.id} className="hover:bg-[var(--surface-secondary)]/30 transition">
+                    <td className="px-5 py-3.5">
+                      <span className="font-bold text-[var(--text-primary)] block text-xs truncate max-w-[180px]">{item.question.topic}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-semibold block truncate mt-0.5">{item.question.subject}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${priorityColor(item.priority)}`}>
+                        {item.priority}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-[11px] text-[var(--text-secondary)] font-semibold">{item.reason}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-center font-bold font-mono text-[var(--text-secondary)]">
+                      {item.estimatedTimeMin}m
+                    </td>
+                    <td className="px-5 py-3.5 text-center font-bold font-mono text-[var(--text-secondary)]">
+                      {item.confidencePercent}%
+                    </td>
+                    <td className="px-5 py-3.5 text-center font-bold font-mono text-[var(--text-secondary)]">
+                      {item.revisionCount} reviews
+                    </td>
+                    <td className="px-5 py-3.5 text-right text-[10px] font-bold text-[var(--text-muted)] font-mono">
+                      {item.nextSuggestedRevision}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-12 text-center text-xs text-[var(--text-muted)] font-semibold flex flex-col items-center justify-center gap-3">
+              <ShieldCheck className="w-12 h-12 text-emerald-500" />
+              <span>Your revision queue is empty! Great job mastering all mistakes.</span>
             </div>
-         </div>
-
-         <div 
-           className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${mode === "weak_topics" ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : "border-[var(--border)] bg-[var(--surface)] hover:border-indigo-300"}`}
-           onClick={() => setMode("weak_topics")}
-         >
-            <div className="flex justify-between items-start">
-               <div>
-                 <h3 className="font-bold text-lg text-[var(--text-primary)]">Weak Topics</h3>
-                 <p className="text-[var(--text-muted)] mt-1 text-sm">Dynamically generate a session from topics where your accuracy is below 50%.</p>
-               </div>
-               <span className="bg-[var(--surface)] px-3 py-1 rounded-full text-indigo-700 dark:text-indigo-400 font-bold shadow-sm">{weakTopics.length} Topics</span>
-            </div>
-         </div>
-       </div>
-
-       <div className="mt-8 pt-6 border-t border-[var(--border)] flex justify-end">
-          <button
-            onClick={handleStartRevision}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold shadow-sm transition"
-          >
-            <RefreshCw className="w-5 h-5" /> Start Revision
-          </button>
-       </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

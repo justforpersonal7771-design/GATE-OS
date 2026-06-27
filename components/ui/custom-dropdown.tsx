@@ -7,6 +7,7 @@ import { ChevronDown, Check } from "lucide-react";
 interface Option {
   label: string;
   value: string;
+  subLabel?: string;
 }
 
 interface CustomDropdownProps {
@@ -79,14 +80,21 @@ export function CustomDropdown({ options, value, onChange, placeholder = "Select
                     onChange(option.value);
                     setIsOpen(false);
                   }}
-                  className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between px-4 py-2 cursor-pointer transition-colors ${
                     isSelected ? "bg-[var(--info)]/10 text-[var(--info)]" : "text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
                   }`}
                 >
-                  <span className={`block truncate ${isSelected ? "font-semibold" : "font-medium"}`}>
-                    {option.label}
-                  </span>
-                  {isSelected && <Check className="w-4 h-4 text-[var(--info)]" />}
+                  <div className="flex flex-col min-w-0">
+                    <span className={`block truncate ${isSelected ? "font-bold text-xs" : "font-medium text-xs text-[var(--text-primary)]"}`}>
+                      {option.label}
+                    </span>
+                    {option.subLabel && (
+                      <span className="block text-[10px] text-[var(--text-muted)] font-medium mt-0.5">
+                        {option.subLabel}
+                      </span>
+                    )}
+                  </div>
+                  {isSelected && <Check className="w-4 h-4 text-[var(--info)] shrink-0" />}
                 </li>
               );
             })}
