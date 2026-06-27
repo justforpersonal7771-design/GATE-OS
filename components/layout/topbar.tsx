@@ -25,8 +25,28 @@ export function Topbar() {
   const [isResetting, setIsResetting] = useState(false);
   const pathname = usePathname();
 
+  const [isOnline, setIsOnline] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<"ready" | "syncing">("ready");
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => {
+        setIsOnline(true);
+        setSyncStatus("syncing");
+        setTimeout(() => setSyncStatus("ready"), 1500); // mock synchronization complete
+      };
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
 
   const toggleTheme = () => {
     if (!mounted) return;
@@ -100,6 +120,28 @@ export function Topbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
+          {/* Connection sync status indicators */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-[var(--surface-secondary)] text-[var(--text-secondary)] transition-colors shadow-sm border border-[var(--border-subtle)]">
+            {isOnline ? (
+              syncStatus === "syncing" ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+                  <span className="text-[9px] uppercase tracking-wider font-black text-[var(--text-secondary)]">Syncing</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[9px] uppercase tracking-wider font-black text-[var(--text-secondary)]">Ready</span>
+                </>
+              )
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-[9px] uppercase tracking-wider font-black text-[var(--text-secondary)]">Offline</span>
+              </>
+            )}
+          </div>
+
           {isInitialized && diagnostics && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--surface-secondary)] text-[var(--text-secondary)] transition-colors shadow-sm border border-[var(--border-subtle)]" title={diagnostics.cacheSource === "INDEXEDDB_AST" ? "IDB Synced" : "Network JSON"}>
               {diagnostics.cacheSource === "INDEXEDDB_AST" ? (

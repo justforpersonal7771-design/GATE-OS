@@ -46,6 +46,9 @@ export class MistakeEngine {
           existing.mastered = false; // reset mastered
           existing.selectedOptions = response.selectedOptions;
           existing.natValue = response.natValue;
+          existing.occurrences = (existing.occurrences || 1) + 1;
+          existing.retryCount = (existing.retryCount || 0) + 1;
+          existing.revisionStatus = 'Very High Priority';
           await IDBManager.saveMistake(existing);
         } else {
           await IDBManager.saveMistake({
@@ -58,7 +61,17 @@ export class MistakeEngine {
             topic: question.topic || "General",
             difficulty: question.difficulty || "Moderate",
             selectedOptions: response.selectedOptions,
-            natValue: response.natValue
+            natValue: response.natValue,
+            
+            // New Part 7 fields
+            category: "Concept Error", // Default category to classify
+            occurrences: 1,
+            lastSeen: now,
+            solvedCount: 0,
+            mastery: 10,
+            confidence: 30,
+            revisionStatus: 'High',
+            retryCount: 0
           });
         }
       }
