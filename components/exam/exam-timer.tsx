@@ -89,6 +89,7 @@ export function ExamTimer() {
             }`}
             strokeWidth="3"
             strokeDasharray={circumference}
+            initial={false}
             animate={{ strokeDashoffset }}
             transition={{ ease: "linear" }}
             strokeLinecap="round"

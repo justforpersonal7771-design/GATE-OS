@@ -6,11 +6,30 @@ import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { ExamSession } from "@/types/exam-runtime.types";
 import { QuestionRepository } from "@/lib/repository/question-repository";
 import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
-import { motion } from "motion/react";
-import { 
-  Award, Clock, Target, AlertCircle, CheckCircle, 
-  XCircle, ArrowRight, Home, RefreshCw, BarChart2, ListFilter, HelpCircle
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "motion/react";
+import {
+  Award, Clock, Target, AlertCircle, CheckCircle,
+  XCircle, ArrowRight, Home, RefreshCw, BarChart2, ListFilter, HelpCircle, Sparkles, TrendingUp
 } from "lucide-react";
+
+/** Animated count-up for a numeric value, e.g. marks or accuracy percentage. */
+function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) {
+  const motionValue = useMotionValue(0);
+  const rounded = useTransform(motionValue, (v) => v.toFixed(decimals));
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    const controls = animate(motionValue, value, { duration: 1, ease: "easeOut" });
+    const unsubscribe = rounded.on("change", (v) => setDisplay(v));
+    return () => {
+      controls.stop();
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  return <>{display}</>;
+}
 
 export default function ResultSummaryPage() {
   const searchParams = useSearchParams();
@@ -199,144 +218,164 @@ export default function ResultSummaryPage() {
   };
 
   const accuracyRatio = accuracy / 100;
-  const radius = 42;
+  const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - accuracyRatio);
+  const strokeDashoffset = circumference - circumference * accuracyRatio;
+
+  const verdict =
+    accuracy >= 80
+      ? { label: "Outstanding Performance!", message: "You're demonstrating strong command over this material. Keep this momentum going." }
+      : accuracy >= 60
+      ? { label: "Solid Effort", message: "A good foundation is showing. Review your mistakes to close the gap to excellent." }
+      : accuracy >= 40
+      ? { label: "Room to Grow", message: "You're making progress. Focus revision time on the weakest topics below." }
+      : { label: "Keep Practicing", message: "Every attempt builds understanding. Review the breakdown and revisit the fundamentals." };
 
   return (
-    <div className="w-full mx-auto p-4 md:p-6 lg:p-8 bg-[var(--background)] h-[calc(100vh-64px)] overflow-hidden font-sans flex flex-col">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch h-full overflow-hidden flex-1">
-        
-        {/* Left Side: Scorecard card & stats summary (Spans 7) */}
-        <motion.div 
+    <div className="w-full mx-auto p-4 md:p-6 lg:p-8 bg-[var(--background)] min-h-screen font-sans space-y-6">
+
+      {/* Hero verdict banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 md:p-8 shadow-xl shadow-indigo-600/20"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-400/20 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8">
+          {/* Accuracy ring */}
+          <div className="relative w-32 h-32 shrink-0">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
+              <circle cx="64" cy="64" r={radius} strokeWidth="8" className="stroke-white/20 fill-none" />
+              <motion.circle
+                cx="64"
+                cy="64"
+                r={radius}
+                strokeWidth="8"
+                className="stroke-white fill-none"
+                strokeDasharray={circumference}
+                strokeLinecap="round"
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-black font-mono"><CountUp value={accuracy} decimals={0} />%</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-indigo-100">Accuracy</span>
+            </div>
+          </div>
+
+          <div className="flex-1 text-center lg:text-left space-y-2">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full">
+              <Sparkles className="w-3 h-3" />
+              Evaluation Complete
+            </span>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight">{verdict.label}</h1>
+            <p className="text-indigo-100 text-sm font-semibold max-w-lg">{verdict.message}</p>
+            <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-widest pt-1">
+              CBT Diagnostic for {session.draftConfig.config.examType.replace("_", " ")}
+            </p>
+          </div>
+
+          <div className="flex gap-6 lg:gap-8 shrink-0">
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-black font-mono"><CountUp value={marks} decimals={2} /></div>
+              <div className="text-[9px] font-black uppercase tracking-widest text-indigo-200">/ {maxPossibleMarks} Marks</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-black font-mono">{m}m {s}s</div>
+              <div className="text-[9px] font-black uppercase tracking-widest text-indigo-200 flex items-center gap-1 justify-center">
+                <Clock className="w-3 h-3" /> Time Taken
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        {/* Left Side: Score breakdown & actions (Spans 7) */}
+        <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 md:p-8 flex flex-col justify-between h-full overflow-hidden"
+          transition={{ delay: 0.1 }}
+          className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 md:p-8 space-y-6"
         >
-          <div className="space-y-8 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {/* Header */}
-            <div className="flex justify-between items-start border-b border-[var(--border-subtle)] pb-5">
+          <div>
+            <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Attempted vs Skipped</span>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <h1 className="text-2xl font-extrabold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
-                  <Award className="w-6 h-6 text-indigo-500" />
-                  <span>Evaluation Summary</span>
-                </h1>
-                <p className="text-xs text-[var(--text-muted)] font-black uppercase tracking-widest mt-1">
-                  CBT Diagnostic for {session.draftConfig.config.examType.replace("_", " ")}
-                </p>
+                <span className="text-2xl font-black text-[var(--text-primary)] font-mono">{totalAttempted}</span>
+                <span className="text-sm font-bold text-[var(--text-muted)] font-mono"> / {session.totalQuestions}</span>
+                <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Attempted</p>
               </div>
-              
-              <div className="text-right bg-[var(--surface-secondary)] px-4 py-2 rounded-2xl border border-[var(--border)]">
-                <div className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-indigo-500" />
-                  <span>Elapsed Time</span>
-                </div>
-                <div className="text-base font-black text-[var(--text-primary)] font-mono">{m}m {s}s</div>
-              </div>
-            </div>
-
-            {/* Premium Progress accuracy ring and Score columns */}
-            <div className="flex flex-col sm:flex-row items-center gap-8 bg-[var(--surface-secondary)] p-6 rounded-3xl border border-[var(--border-subtle)]">
-              {/* Progress Ring */}
-              <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="56" cy="56" r={radius} className="stroke-gray-200 dark:stroke-gray-800 fill-none" strokeWidth="6" />
-                  <motion.circle
-                    cx="56"
-                    cy="56"
-                    r={radius}
-                    className="stroke-indigo-500 fill-none"
-                    strokeWidth="6"
-                    strokeDasharray={circumference}
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-xl font-black font-mono text-[var(--text-primary)]">{accuracy.toFixed(0)}%</span>
-                  <span className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider">Accuracy</span>
-                </div>
-              </div>
-
-              {/* Score breakdown stats */}
-              <div className="flex-1 w-full space-y-4">
-                <div>
-                  <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Total Marks Achieved</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter font-mono">{marks.toFixed(2)}</span>
-                    <span className="text-sm font-bold text-[var(--text-muted)] font-mono">/ {maxPossibleMarks}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-subtle)]/65">
-                  <div>
-                    <span className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-0.5">Attempted</span>
-                    <span className="text-sm font-bold text-[var(--text-primary)] font-mono">{totalAttempted} / {session.totalQuestions}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-0.5">Skipped Tasks</span>
-                    <span className="text-sm font-bold text-[var(--text-primary)] font-mono">{session.totalQuestions - totalAttempted}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Metrics Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <CheckCircle className="w-5 h-5 text-emerald-500 mb-1" />
-                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Correct</span>
-                <span className="text-base font-black text-[var(--text-primary)] font-mono">{correct}</span>
-              </div>
-              <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <XCircle className="w-5 h-5 text-rose-500 mb-1" />
-                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Wrong</span>
-                <span className="text-base font-black text-[var(--text-primary)] font-mono">{wrong}</span>
-              </div>
-              <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-1.5">+ Marks</span>
-                <span className="text-base font-black text-[var(--text-primary)] font-mono">+{totalPositiveMarks.toFixed(1)}</span>
-              </div>
-              <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] font-black text-red-500 dark:text-red-400 uppercase tracking-widest mb-1.5">- Penalty</span>
-                <span className="text-base font-black text-[var(--text-primary)] font-mono">-{totalNegativeMarks.toFixed(1)}</span>
+              <div>
+                <span className="text-2xl font-black text-[var(--text-primary)] font-mono">{session.totalQuestions - totalAttempted}</span>
+                <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Skipped Tasks</p>
               </div>
             </div>
           </div>
 
-          {/* Actions Desk (Part 8) */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[var(--border-subtle)] mt-8">
-            <button 
-              onClick={() => router.push("/")} 
+          {/* Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { icon: CheckCircle, label: "Correct", value: correct, color: "text-emerald-500" },
+              { icon: XCircle, label: "Wrong", value: wrong, color: "text-rose-500" },
+              { icon: TrendingUp, label: "+ Marks", value: `+${totalPositiveMarks.toFixed(1)}`, color: "text-emerald-600 dark:text-emerald-500" },
+              { icon: AlertCircle, label: "- Penalty", value: `-${totalNegativeMarks.toFixed(1)}`, color: "text-red-500 dark:text-red-400" },
+            ].map((stat, idx) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + idx * 0.05 }}
+                className="bg-[var(--surface-secondary)] border border-[var(--border)] p-4 rounded-2xl flex flex-col items-center justify-center text-center hover-lift"
+              >
+                <stat.icon className={`w-5 h-5 mb-1 ${stat.color}`} />
+                <span className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${stat.label.includes("Marks") || stat.label.includes("Penalty") ? stat.color : "text-[var(--text-muted)]"}`}>{stat.label}</span>
+                <span className="text-base font-black text-[var(--text-primary)] font-mono">{stat.value}</span>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Actions Desk */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[var(--border-subtle)]">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push("/")}
               className="flex-1 px-5 py-3.5 bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-elevated)] font-bold uppercase tracking-wider rounded-xl transition shadow-sm text-xs flex items-center justify-center gap-2 cursor-pointer"
             >
               <Home className="w-4 h-4" />
               <span>Dashboard</span>
-            </button>
-            <button 
-              onClick={handleRetry} 
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleRetry}
               className="flex-1 px-5 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold uppercase tracking-wider rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer text-xs"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Retry Test</span>
-            </button>
-            <button 
-              onClick={() => router.push(`/exam/results/review?id=${id}`)} 
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push(`/exam/results/review?id=${id}`)}
               className="flex-[1.5] px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-500/10 transition flex items-center justify-center gap-2 cursor-pointer text-xs"
             >
               <span>Launch Review Mode</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
         </motion.div>
 
         {/* Right Side: Tabbed diagnostics breakdown matrix (Spans 5) */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 flex flex-col h-full overflow-hidden"
+          transition={{ delay: 0.18 }}
+          className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 flex flex-col max-h-[600px]"
         >
           {/* Header */}
           <div className="flex-none border-b border-[var(--border-subtle)] pb-4 mb-4">
@@ -344,15 +383,22 @@ export default function ResultSummaryPage() {
               <BarChart2 className="w-4 h-4 text-indigo-500" />
               <span>Diagnostics Breakdown</span>
             </h3>
-            
+
             {/* Tabs Row for subject, section, difficulty, type - Part 8 */}
             <div className="flex bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl p-0.5 mt-4 text-[9px] font-black uppercase tracking-wider">
               {(["subject", "section", "difficulty", "type"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${activeTab === tab ? 'bg-[var(--surface)] shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+                  className={`relative flex-1 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === tab ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
                 >
+                  {activeTab === tab && (
+                    <motion.div
+                      layoutId="results-tab-pill"
+                      className="absolute inset-0 bg-[var(--surface)] shadow rounded-lg -z-10"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
                   {tab}
                 </button>
               ))}
@@ -361,41 +407,55 @@ export default function ResultSummaryPage() {
 
           {/* Matrix items list */}
           <div className="flex-1 overflow-y-auto pr-1 -mr-1 custom-scrollbar space-y-4">
-            {activeBreakdown().map((item, idx) => {
-              const itemAccuracy = item.attempted > 0 ? ((item.correct / item.attempted) * 100) : 0;
-              return (
-                <div 
-                  key={item.label + idx}
-                  className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm"
-                >
-                  <div className="font-bold text-xs text-[var(--text-primary)] mb-3 pb-1 border-b border-[var(--border)]/50 truncate">
-                    {item.label}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
-                    <div className="bg-[var(--surface)] p-2 rounded-xl border border-[var(--border-subtle)]">
-                      <div className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Score</div>
-                      <div className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
-                        {item.marks.toFixed(1)} <span className="text-[9px] text-[var(--text-muted)] font-normal">/ {item.max}</span>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-4"
+              >
+                {activeBreakdown().map((item, idx) => {
+                  const itemAccuracy = item.attempted > 0 ? ((item.correct / item.attempted) * 100) : 0;
+                  return (
+                    <motion.div
+                      key={item.label + idx}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(idx * 0.04, 0.3) }}
+                      className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm hover-lift"
+                    >
+                      <div className="font-bold text-xs text-[var(--text-primary)] mb-3 pb-1 border-b border-[var(--border)]/50 truncate">
+                        {item.label}
                       </div>
-                    </div>
-                    <div className="bg-[var(--surface)] p-2 rounded-xl border border-[var(--border-subtle)]">
-                      <div className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Accuracy</div>
-                      <div className="font-mono text-xs text-[var(--text-secondary)]">
-                        {itemAccuracy.toFixed(0)}%
+                      <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
+                        <div className="bg-[var(--surface)] p-2 rounded-xl border border-[var(--border-subtle)]">
+                          <div className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Score</div>
+                          <div className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
+                            {item.marks.toFixed(1)} <span className="text-[9px] text-[var(--text-muted)] font-normal">/ {item.max}</span>
+                          </div>
+                        </div>
+                        <div className="bg-[var(--surface)] p-2 rounded-xl border border-[var(--border-subtle)]">
+                          <div className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Accuracy</div>
+                          <div className="font-mono text-xs text-[var(--text-secondary)]">
+                            {itemAccuracy.toFixed(0)}%
+                          </div>
+                        </div>
+                        <div className="bg-[var(--surface)] p-2 rounded-xl border border-[var(--border-subtle)]">
+                          <div className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Attempts</div>
+                          <div className="font-mono text-xs text-[var(--text-secondary)] flex justify-center gap-1">
+                            <span className="text-emerald-500">{item.correct}</span>
+                            <span className="text-[var(--text-muted)]">/</span>
+                            <span className="text-rose-500">{item.wrong}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-[var(--surface)] p-2 rounded-xl border border-[var(--border-subtle)]">
-                      <div className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Attempts</div>
-                      <div className="font-mono text-xs text-[var(--text-secondary)] flex justify-center gap-1">
-                        <span className="text-emerald-500">{item.correct}</span>
-                        <span className="text-[var(--text-muted)]">/</span>
-                        <span className="text-rose-500">{item.wrong}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
 

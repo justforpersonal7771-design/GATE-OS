@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useStudyStore } from "@/store/use-study-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
@@ -696,27 +697,45 @@ export default function AITutorWorkspace() {
 
                     if (!isModel) {
                       return (
-                        <div key={msgIdx} className="flex justify-end">
+                        <motion.div
+                          key={msgIdx}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex justify-end"
+                        >
                           <div className="bg-indigo-600 text-white rounded-2xl px-4 py-2.5 text-xs font-bold max-w-md shadow-sm">
                             {msg.text}
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     }
 
                     if (!data) {
                       return (
-                        <div key={msgIdx} className="flex justify-start">
+                        <motion.div
+                          key={msgIdx}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex justify-start"
+                        >
                           <div className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-2xl px-4 py-2.5 text-xs font-medium max-w-md shadow-sm">
                             {msg.text}
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     }
 
                     // Render dynamic Collapsible Cards
                     return (
-                      <div key={msgIdx} className="space-y-4">
+                      <motion.div
+                        key={msgIdx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="space-y-4"
+                      >
 
                      {/* 1. OVERVIEW CARD */}
                         <div id="card-overview" className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
@@ -730,11 +749,21 @@ export default function AITutorWorkspace() {
                             </span>
                             {expandedCards.overview ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
-                          {expandedCards.overview && (
-                            <div className="p-4 text-xs text-[var(--text-secondary)] font-semibold leading-relaxed">
-                              <AstNodeRenderer nodes={AIResponseParser.parse(data.concept)} />
-                            </div>
-                          )}
+                          <AnimatePresence initial={false}>
+                            {expandedCards.overview && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: "easeInOut" }}
+                                className="overflow-hidden"
+                              >
+                                <div className="p-4 text-xs text-[var(--text-secondary)] font-semibold leading-relaxed">
+                                  <AstNodeRenderer nodes={AIResponseParser.parse(data.concept)} />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
                         {/* 2. STEP BY STEP SOLUTION */}
@@ -750,16 +779,26 @@ export default function AITutorWorkspace() {
                               </span>
                               {expandedCards.steps ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
-                            {expandedCards.steps && (
-                              <div className="p-4 space-y-3">
-                                {data.steps.map((step, idx) => (
-                                  <div key={idx} className="flex gap-3 text-xs leading-relaxed text-[var(--text-secondary)] font-medium">
-                                    <span className="font-extrabold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded h-fit shrink-0 mt-0.5">Step {idx + 1}</span>
-                                    <div className="flex-1 overflow-hidden"><AstNodeRenderer nodes={AIResponseParser.parse(step)} /></div>
+                            <AnimatePresence initial={false}>
+                              {expandedCards.steps && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 space-y-3">
+                                    {data.steps.map((step, idx) => (
+                                      <div key={idx} className="flex gap-3 text-xs leading-relaxed text-[var(--text-secondary)] font-medium">
+                                        <span className="font-extrabold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded h-fit shrink-0 mt-0.5">Step {idx + 1}</span>
+                                        <div className="flex-1 overflow-hidden"><AstNodeRenderer nodes={AIResponseParser.parse(step)} /></div>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )}
 
@@ -776,27 +815,37 @@ export default function AITutorWorkspace() {
                               </span>
                               {expandedCards.formulas ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
-                            {expandedCards.formulas && (
-                              <div className="p-4 space-y-2.5">
-                                {data.formulas.map((form, idx) => (
-                                  <div key={idx} className="p-2.5 bg-[var(--surface-secondary)]/50 rounded-xl flex items-center justify-between border border-[var(--border-subtle)] gap-4">
-                                    <div className="text-xs font-semibold text-[var(--text-primary)] flex-1 overflow-hidden">
-                                      <span className="font-extrabold mr-1">Formula {idx + 1}:</span>
-                                      <AstNodeRenderer nodes={AIResponseParser.parse(form)} className="inline-block" />
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(form);
-                                        useToastStore.getState().show("Formula copied to clipboard!");
-                                      }}
-                                      className="text-[9px] font-black uppercase text-indigo-500 hover:underline shrink-0"
-                                    >
-                                      Copy
-                                    </button>
+                            <AnimatePresence initial={false}>
+                              {expandedCards.formulas && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 space-y-2.5">
+                                    {data.formulas.map((form, idx) => (
+                                      <div key={idx} className="p-2.5 bg-[var(--surface-secondary)]/50 rounded-xl flex items-center justify-between border border-[var(--border-subtle)] gap-4">
+                                        <div className="text-xs font-semibold text-[var(--text-primary)] flex-1 overflow-hidden">
+                                          <span className="font-extrabold mr-1">Formula {idx + 1}:</span>
+                                          <AstNodeRenderer nodes={AIResponseParser.parse(form)} className="inline-block" />
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(form);
+                                            useToastStore.getState().show("Formula copied to clipboard!");
+                                          }}
+                                          className="text-[9px] font-black uppercase text-indigo-500 hover:underline shrink-0"
+                                        >
+                                          Copy
+                                        </button>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )}
 
@@ -813,11 +862,21 @@ export default function AITutorWorkspace() {
                               </span>
                               {expandedCards.shortcut ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
-                            {expandedCards.shortcut && (
-                              <div className="p-4 text-xs text-[var(--text-secondary)] font-bold bg-violet-50/20 dark:bg-violet-950/5 leading-relaxed">
-                                <AstNodeRenderer nodes={AIResponseParser.parse(data.shortcut)} />
-                              </div>
-                            )}
+                            <AnimatePresence initial={false}>
+                              {expandedCards.shortcut && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 text-xs text-[var(--text-secondary)] font-bold bg-violet-50/20 dark:bg-violet-950/5 leading-relaxed">
+                                    <AstNodeRenderer nodes={AIResponseParser.parse(data.shortcut)} />
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )}
 
@@ -834,7 +893,7 @@ export default function AITutorWorkspace() {
                           </div>
                         )}
 
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
