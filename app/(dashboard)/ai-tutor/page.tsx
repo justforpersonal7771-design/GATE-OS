@@ -17,6 +17,7 @@ import {
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { AIPracticeQuestion, AIExplanation } from "@/types/ai.types";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
+import { ConversationMemory } from "@/lib/ai/memory/ConversationMemory";
 
 const EXPLAIN_MODES = [
   "Detailed",
@@ -64,6 +65,8 @@ export default function AITutorWorkspace() {
   const [history, setHistory] = useState<{ role: "user" | "model"; text: string; data?: AIExplanation }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [restoredQid, setRestoredQid] = useState<string | null>(null);
+  const skipAutoFetchRef = useRef(false);
 
   // Cards layout states (collapsing/pinning)
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
@@ -141,9 +144,52 @@ export default function AITutorWorkspace() {
     }
   }, [qid, bookmarks]);
 
-  // Fetch initial AI explanation whenever learning mode or personality changes
+  // Restore any previously saved conversation for this question before deciding
+  // whether to auto-generate a fresh explanation.
   useEffect(() => {
     if (!qid) return;
+    let active = true;
+
+    (async () => {
+      const saved = await ConversationMemory.getConversation(qid);
+      if (!active) return;
+
+      if (saved.length > 0) {
+        setHistory(saved.map(({ role, text, data }) => ({ role, text, data: data as AIExplanation | undefined })));
+        const lastModelWithData = [...saved].reverse().find(m => m.role === "model" && m.data);
+        if (lastModelWithData?.data) {
+          setExplanation(lastModelWithData.data as AIExplanation);
+        }
+        skipAutoFetchRef.current = true;
+      } else {
+        setHistory([]);
+        setExplanation(null);
+      }
+      setRestoredQid(qid);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [qid]);
+
+  // Persist conversation history for this question whenever it changes.
+  useEffect(() => {
+    if (!qid || history.length === 0) return;
+    ConversationMemory.saveConversation(
+      qid,
+      history.map(h => ({ role: h.role, text: h.text, data: h.data }))
+    );
+  }, [qid, history]);
+
+  // Fetch initial AI explanation whenever learning mode or personality changes
+  useEffect(() => {
+    if (!qid || restoredQid !== qid) return; // wait for the restore attempt above to finish first
+
+    if (skipAutoFetchRef.current) {
+      skipAutoFetchRef.current = false;
+      return;
+    }
 
     let active = true;
 
@@ -164,18 +210,21 @@ export default function AITutorWorkspace() {
             data: res.data
           }]);
 
-          // Save interaction in persistent LearningMemory log
+          // Save interaction in persistent LearningMemory log. This is an AI
+          // consultation, not a graded attempt — only record real, known data
+          // (e.g. from an existing mistake record for this question), never
+          // fabricate isCorrect/timeSpent/confidence values.
           try {
             const { LearningMemory } = await import("@/lib/ai/memory/LearningMemory");
+            const priorMistake = mistakes.find(m => m.questionId === qid);
             await LearningMemory.recordInteraction({
               questionId: qid,
               topic: question?.topic || "Unknown",
               subject: question?.subject || "Unknown",
               difficulty: question?.difficulty || "Medium",
-              isCorrect: true,
-              timeSpentSeconds: 60,
-              confidenceBefore: 50,
-              confidenceAfter: 80,
+              interactionType: "consultation",
+              isCorrect: priorMistake ? false : undefined,
+              confidenceBefore: priorMistake?.confidence,
               practiceGenerated: false
             });
           } catch (e) {
@@ -204,7 +253,7 @@ export default function AITutorWorkspace() {
       active = false;
       AIService.cancelRequest(`explain_${qid}_${explainMode}_${personality}`);
     };
-  }, [qid, explainMode, personality, question]);
+  }, [qid, explainMode, personality, question, restoredQid]);
 
   // Scroll to chat bottom whenever history updates
   useEffect(() => {
@@ -339,9 +388,13 @@ export default function AITutorWorkspace() {
         const pq = set[idx];
         const qId = `ai_${Date.now()}_${idx}`;
 
+        const correctIds = new Set(pq.correctOptionIds || []);
+        if (pq.questionType !== "NAT" && correctIds.size === 0) {
+          console.warn(`AI-generated question ${idx} is missing correctOptionIds; no option will be marked correct.`);
+        }
         const compiledOptions = pq.options?.map(o => ({
           option_id: o.option_id,
-          is_correct: o.option_id === "A", // Stub correct option
+          is_correct: correctIds.has(o.option_id),
           optionTextRaw: o.content,
           contentAst: [{ type: "text" as const, content: o.content }]
         })) || [];
@@ -1004,7 +1057,7 @@ export default function AITutorWorkspace() {
                                     <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block">Options</span>
                                     <div className="grid grid-cols-1 gap-1.5">
                                       {q.options.map(opt => {
-                                        const isCorrect = opt.option_id === "A";
+                                        const isCorrect = (q.correctOptionIds || []).includes(opt.option_id);
                                         return (
                                           <div 
                                             key={opt.option_id}

@@ -257,13 +257,17 @@ Output JSON matching:
         { "option_id": "D", "content": "Option text" }
       ],
       "questionType": "MCQ",
+      "correctOptionIds": ["B"],
       "natAnswerRange": null,
       "explanation": "Detailed step by step proof/explanation",
       "difficulty": "Medium"
     }
   ]
 }
-For NAT type, leave options as null and provide "natAnswerRange": { "min": 10.5, "max": 10.5 }.
+CRITICAL: "correctOptionIds" is REQUIRED for every MCQ (exactly one id) and MSQ (one or more ids) question —
+it must match the option(s) actually justified as correct in "explanation". Never omit it and never default
+to a fixed option; determine it fresh for each question. For NAT type, leave options and correctOptionIds as
+null and provide "natAnswerRange": { "min": 10.5, "max": 10.5 }.
 `;
 
     const prompt = `

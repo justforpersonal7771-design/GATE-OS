@@ -1,20 +1,24 @@
+import "server-only";
 import { GoogleGenAI } from "@google/genai";
+
+// SERVER-ONLY. Never import this module from a "use client" component —
+// the `server-only` import above makes that a build-time error. The Gemini
+// API key must never reach the browser; only app/api/ai/generate/route.ts
+// (and other server route handlers) may call getGoogleGenAIClient().
 
 let aiInstance: GoogleGenAI | null = null;
 
 export function getGoogleGenAIClient(): GoogleGenAI {
   if (!aiInstance) {
-    const apiKey = typeof window !== "undefined"
-      ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (window as any).NEXT_PUBLIC_GEMINI_API_KEY)
-      : (process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!apiKey && typeof window === "undefined") {
-      console.warn("WARNING: Gemini API Key is not set in environment variables!");
+    if (!apiKey) {
+      throw new Error(
+        "GEMINI_API_KEY is not configured. Set it in .env.local (server-side only, no NEXT_PUBLIC_ prefix)."
+      );
     }
 
-    aiInstance = new GoogleGenAI({
-      apiKey: apiKey || ""
-    });
+    aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
 }

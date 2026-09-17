@@ -8,7 +8,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 // Install Event
-self.addEventListener("install", (event: any) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -18,7 +18,7 @@ self.addEventListener("install", (event: any) => {
 });
 
 // Activate Event
-self.addEventListener("activate", (event: any) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
@@ -34,7 +34,7 @@ self.addEventListener("activate", (event: any) => {
 });
 
 // Fetch Strategy (Cache First with Network Fallback)
-self.addEventListener("fetch", (event: any) => {
+self.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (event.request.method !== "GET") return;
 

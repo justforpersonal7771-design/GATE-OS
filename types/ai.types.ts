@@ -73,6 +73,9 @@ export interface AIPracticeQuestion {
     content: string;
   }[];
   questionType: "MCQ" | "MSQ" | "NAT";
+  // Which option_id(s) are correct — one for MCQ, one-or-more for MSQ.
+  // Always populated by the model for MCQ/MSQ; absent/ignored for NAT.
+  correctOptionIds?: string[];
   natAnswerRange?: {
     min: number;
     max: number;

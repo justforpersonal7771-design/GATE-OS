@@ -6,10 +6,16 @@ export interface LearningInteraction {
   subject: string;
   difficulty: string;
   timestamp: string;
-  isCorrect: boolean;
-  timeSpentSeconds: number;
-  confidenceBefore: number;
-  confidenceAfter: number;
+  // "attempt" = a real graded answer (exam/mistake retry); "consultation" = the
+  // student asked the AI Tutor to explain something, with no attempt attached.
+  // Only "attempt" interactions carry real isCorrect/timeSpent data.
+  interactionType: "attempt" | "consultation";
+  // All of the below are only ever set from real, measured data — never
+  // fabricated. Omit rather than guess when the real value isn't known.
+  isCorrect?: boolean;
+  timeSpentSeconds?: number;
+  confidenceBefore?: number;
+  confidenceAfter?: number;
   notesSaved?: string;
   practiceGenerated?: boolean;
 }

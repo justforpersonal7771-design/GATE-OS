@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { MemoryEngine, KnowledgeGraph, InsightMemory, MistakePattern, LearnerTimelineMilestone, ReadinessScorecard } from "@/lib/ai/memory/MemoryEngine";
+import { MasteryEngine, TopicMastery } from "@/lib/learning/MasteryEngine";
+import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
 import { 
@@ -29,6 +31,10 @@ export default function AIMentorPage() {
   // Prerequisites diagnostic state
   const [diagnostics, setDiagnostics] = useState<{ topic: string; mastery: number; description: string }[]>([]);
 
+  // Real computed inputs for readiness prediction — never fabricated.
+  const [topicMasteryMap, setTopicMasteryMap] = useState<Record<string, TopicMastery>>({});
+  const [plannerCompletion, setPlannerCompletion] = useState<number | null>(null);
+
   useEffect(() => {
     setMounted(true);
     const loadMentorData = async () => {
@@ -41,27 +47,60 @@ export default function AIMentorPage() {
     loadMentorData();
   }, [loadStudyData, refreshAnalytics]);
 
-  // Aggregate student stats & masteries across subjects
+  // Aggregate student stats & masteries across subjects. Confidence is the
+  // average of real per-mistake confidence scores recorded for that subject;
+  // when no mistake has been logged for it yet, accuracy is the closest real
+  // signal we have, so we fall back to that instead of a fabricated constant.
   const subjectMasteries = useMemo(() => {
     if (!dashboardMetrics) return [];
     return dashboardMetrics.subjectPerformance.map(sub => {
-      const averageConfidence = 70; // Mock average confidence index
       const accuracy = sub.attempted > 0 ? (sub.correct / sub.attempted) * 100 : 0;
+      const subjectMistakeConfidences = mistakes
+        .filter(m => m.subject === sub.subject && typeof m.confidence === "number")
+        .map(m => m.confidence as number);
+      const averageConfidence = subjectMistakeConfidences.length > 0
+        ? Math.round(subjectMistakeConfidences.reduce((a, b) => a + b, 0) / subjectMistakeConfidences.length)
+        : Math.round(accuracy);
       return {
         subject: sub.subject,
         masteryIndex: Math.round(accuracy),
         averageConfidence
       };
     });
-  }, [dashboardMetrics]);
+  }, [dashboardMetrics, mistakes]);
 
-  // Build Readiness prediction scorecards
+  // Compute real topic mastery (reusing the same MasteryEngine the rest of the
+  // app uses) and real planner completion from actual calendar events.
   useEffect(() => {
     if (!mounted || loading) return;
 
+    const computeRealInputs = async () => {
+      const { QuestionRepository } = await import("@/lib/repository/question-repository");
+      await QuestionRepository.initialize();
+      const allQuestions = QuestionRepository.getAllQuestions();
+      const sessionRecords = await IDBManager.getAllExamSessions();
+      const sessions = sessionRecords.map(r => r.sessionData as any);
+      setTopicMasteryMap(MasteryEngine.calculateTopicMastery(allQuestions, sessions, mistakes));
+
+      const events = await IDBManager.getCalendarEvents();
+      if (events.length === 0) {
+        // No planner data yet — use a neutral midpoint rather than a fabricated
+        // "typical" completion rate, so it neither rewards nor penalizes readiness.
+        setPlannerCompletion(50);
+      } else {
+        const completed = events.filter(e => e.completed).length;
+        setPlannerCompletion(Math.round((completed / events.length) * 100));
+      }
+    };
+    computeRealInputs();
+  }, [mounted, loading, mistakes]);
+
+  // Build Readiness prediction scorecards
+  useEffect(() => {
+    if (!mounted || loading || plannerCompletion === null) return;
+
     const totalSolved = mistakes.length + bookmarks.length;
-    const accuracy = dashboardMetrics?.overview.overallAccuracy || 65;
-    const plannerCompletion = 75; // Baseline default planner rate
+    const accuracy = dashboardMetrics?.overview.overallAccuracy ?? 0;
 
     const pred = MemoryEngine.predictExamReadiness(
       subjectMasteries,
@@ -70,7 +109,7 @@ export default function AIMentorPage() {
       plannerCompletion
     );
     setReadiness(pred);
-  }, [mounted, loading, subjectMasteries, mistakes, bookmarks, dashboardMetrics]);
+  }, [mounted, loading, subjectMasteries, mistakes, bookmarks, dashboardMetrics, plannerCompletion]);
 
   // Scan and discover mistakes patterns
   useEffect(() => {
@@ -101,21 +140,23 @@ export default function AIMentorPage() {
     return bookmarks.filter(b => b.isShortcutOnly || b.aiShortcut);
   }, [bookmarks]);
 
-  // Handle prerequisite diagnosis whenever a topic is selected
+  // Handle prerequisite diagnosis whenever a topic is selected. Uses the same
+  // real MasteryEngine scores the rest of the app relies on (topicMasteryMap),
+  // not an ad hoc estimate.
   const handleDiagnosePrerequisites = (topic: string) => {
     setSelectedTopic(topic);
-    
-    // Map topic masteries to mock percentages
+
     const masteries: Record<string, number> = {};
-    mistakes.forEach(m => {
-      masteries[m.topic] = m.mastered ? 85 : Math.max(20, 80 - (m.occurrences || 1) * 20);
+    Object.values(topicMasteryMap).forEach(tm => {
+      masteries[tm.topic] = tm.score;
     });
 
     const weaknesses = KnowledgeGraph.diagnosePrerequisiteWeaknesses(topic, masteries);
     setDiagnostics(weaknesses);
   };
 
-  // Compile daily personalized coach advice
+  // Compile daily personalized coach advice — every claim below is derived
+  // from real stored data (streak/lastActiveDate/mistakes); nothing is invented.
   const coachAdvice = useMemo(() => {
     if (mistakes.length === 0) {
       return {
@@ -124,14 +165,28 @@ export default function AIMentorPage() {
       };
     }
 
-    const weakTopic = mistakes.find(m => !m.mastered)?.topic || "Recursion";
-    const pendingCount = mistakes.filter(m => !m.mastered).length;
-    
+    const pendingMistakes = mistakes.filter(m => !m.mastered);
+    const weakTopic = pendingMistakes[0]?.topic;
+    const pendingCount = pendingMistakes.length;
+
+    const lastActiveDate = dashboardMetrics?.overview.lastActiveDate;
+    const streak = dashboardMetrics?.overview.currentStreak ?? 0;
+    const activitySummary = lastActiveDate
+      ? `You were last active on ${new Date(lastActiveDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}${streak > 0 ? ` (${streak}-day streak)` : ""}.`
+      : "No recent activity is recorded yet.";
+
+    if (!weakTopic || pendingCount === 0) {
+      return {
+        greeting: "Good to see you back.",
+        body: `${activitySummary} You have no open mistakes right now — solid position. Consider a fresh practice set or revisiting bookmarks to keep momentum.`
+      };
+    }
+
     return {
-      greeting: "Good Morning, Student.",
-      body: `Yesterday you spent solid time reviewing data structures. However, your concept retention is flagged on "${weakTopic}" because you have ${pendingCount} pending mistakes remaining. Today, we recommend solving 5 review questions in "${weakTopic}" before starting any new subject.`
+      greeting: "Good to see you back.",
+      body: `${activitySummary} Your concept retention is flagged on "${weakTopic}" — you have ${pendingCount} pending mistake${pendingCount === 1 ? "" : "s"} there. Today, we recommend reviewing "${weakTopic}" before starting any new subject.`
     };
-  }, [mistakes]);
+  }, [mistakes, dashboardMetrics]);
 
   if (!mounted) return null;
 

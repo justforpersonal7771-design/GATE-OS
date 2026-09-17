@@ -1,4 +1,3 @@
-import { getGoogleGenAIClient, GEMINI_MODEL } from "./gemini";
 import { RateLimiter } from "./rate-limiter";
 import { TokenEstimator } from "./token-estimator";
 import { IDBManager } from "../repository/storage/idb-manager";
@@ -110,25 +109,29 @@ export class AIClient {
     }
 
     try {
-      // 2. Rate Limited Request execution
-      const apiResponse = await RateLimiter.enqueue(requestId, async (signal) => {
-        const response = await getGoogleGenAIClient().models.generateContent({
-          model: GEMINI_MODEL,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            responseMimeType: "application/json"
-          }
+      // 2. Rate Limited Request execution — proxied through the server so the
+      // Gemini API key never reaches the browser (see app/api/ai/generate/route.ts).
+      const responseText = await RateLimiter.enqueue(requestId, async (signal) => {
+        const res = await fetch("/api/ai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ systemInstruction, prompt }),
+          signal,
         });
 
         if (signal.aborted) {
           throw new Error("Request aborted");
         }
 
-        return response;
+        const body = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(body?.error || `AI request failed with status ${res.status}`);
+        }
+
+        return body.text as string | undefined;
       });
 
-      const responseText = apiResponse.text;
       if (!responseText) {
         throw new Error("Empty response received from Gemini API");
       }

@@ -152,7 +152,11 @@ export class MemoryEngine {
         });
       }
       
-      if (item.confidenceAfter > item.confidenceBefore + 15) {
+      if (
+        item.confidenceAfter !== undefined &&
+        item.confidenceBefore !== undefined &&
+        item.confidenceAfter > item.confidenceBefore + 15
+      ) {
         milestones.push({
           id: `milestone_conf_${idx}`,
           timestamp: item.timestamp,
