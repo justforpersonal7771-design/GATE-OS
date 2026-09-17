@@ -112,26 +112,27 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       }`}
     >
       {/* Header */}
-      <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="relative overflow-hidden p-4 flex items-center justify-between gap-2 bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700">
+        <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative flex items-center gap-2">
           {isExpanded && (
             <button
               onClick={() => setIsExpanded(false)}
-              className="p-1 -ml-1 mr-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer"
+              className="p-1 -ml-1 mr-1 text-white/70 hover:text-white rounded-md hover:bg-white/10 transition-colors cursor-pointer"
               title="Back to quick view"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
           )}
-          <Calendar className="w-4 h-4 text-indigo-500" />
-          <span className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)]">
+          <Calendar className="w-4 h-4 text-white" />
+          <span className="font-extrabold text-xs uppercase tracking-widest text-white">
             {isExpanded ? "Study Planner" : "Today's Plan"}
           </span>
         </div>
         {!isExpanded && (
           <button
             onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-indigo-500 hover:text-indigo-400 transition-colors cursor-pointer"
+            className="relative flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white/90 hover:text-white transition-colors cursor-pointer"
           >
             Full Planner <ChevronRight className="w-3 h-3" />
           </button>
@@ -145,7 +146,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       ) : (
         <>
       {/* Exam countdown */}
-      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/40 flex items-center justify-between">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/40 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wide">
           <Target className="w-3 h-3 text-rose-500" />
           Target Exam

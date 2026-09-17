@@ -42,12 +42,13 @@ export function TodoQuickPanel() {
       transition={{ duration: 0.15 }}
       className="absolute right-0 top-full mt-2 w-[320px] bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50"
     >
-      <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ListTodo className="w-4 h-4 text-indigo-500" />
-          <span className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)]">To-Do List</span>
+      <div className="relative overflow-hidden p-4 flex items-center justify-between bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700">
+        <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative flex items-center gap-2">
+          <ListTodo className="w-4 h-4 text-white" />
+          <span className="font-extrabold text-xs uppercase tracking-widest text-white">To-Do List</span>
         </div>
-        <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider font-mono">
+        <span className="relative text-[10px] font-black text-white/90 uppercase tracking-wider font-mono">
           {pending.length} pending
         </span>
       </div>
