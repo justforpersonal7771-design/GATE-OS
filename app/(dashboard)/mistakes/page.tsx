@@ -7,9 +7,9 @@ import { QuestionRepository } from "@/lib/repository/question-repository";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { MathJaxContext } from "better-react-mathjax";
-import { 
-  Loader2, RefreshCw, Archive, Search, ChevronLeft, ChevronRight, 
-  StickyNote, AlertTriangle, Star, CheckSquare, Zap, BarChart2 
+import {
+  Loader2, RefreshCw, Archive, Search, ChevronLeft, ChevronRight,
+  StickyNote, AlertTriangle, Star, CheckSquare, Zap, BarChart2, Sparkles, X, Bookmark
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
@@ -30,8 +30,8 @@ const ERROR_CATEGORIES = [
 export default function MistakesPage() {
   const router = useRouter();
   const { isInitialized } = useDataStore();
-  const { mistakes, loadStudyData, markMistakeMastered, removeMistake, recordMistakeReview } = useStudyStore();
-  
+  const { mistakes, loadStudyData, markMistakeMastered, removeMistake, recordMistakeReview, bookmarks, addBookmark, removeBookmark } = useStudyStore();
+
   const [activeMistake, setActiveMistake] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string>("ALL");
   const [filterTopic, setFilterTopic] = useState<string>("ALL");
@@ -106,6 +106,21 @@ export default function MistakesPage() {
     await loadStudyData();
   };
 
+  const handleToggleBookmark = async () => {
+    if (!activeMistake || !question) return;
+    const isBookmarked = bookmarks.some(b => b.questionId === activeMistake);
+    if (isBookmarked) {
+      await removeBookmark(activeMistake);
+    } else {
+      await addBookmark(
+        activeMistake,
+        "",
+        question.subject,
+        question.topic
+      );
+    }
+  };
+
   // Solved retry handler
   const handleRetrySolve = async (isCorrect: boolean) => {
     if (!activeEntry) return;
@@ -113,7 +128,7 @@ export default function MistakesPage() {
     const retryCount = (activeEntry.retryCount || 0) + 1;
     const solvedCount = (activeEntry.solvedCount || 0) + (isCorrect ? 1 : 0);
     const occurrences = (activeEntry.occurrences || 1) + (isCorrect ? 0 : 1);
-    
+
     // Mastered if solved 3 times or user chose manual mastery
     const mastered = solvedCount >= 3;
 
@@ -139,14 +154,14 @@ export default function MistakesPage() {
         .map(o => o.option_id)
         .sort()
         .join(",");
-      
+
       const userOptionIds = [...userSelected].sort().join(",");
       isCorrect = correctOptionIds === userOptionIds;
     } else if (question.question_type === "NAT" && question.nat_answer_range) {
       const val = parseFloat(userNatValue);
-      isCorrect = !isNaN(val) && 
-                  val >= question.nat_answer_range.min && 
-                  val <= question.nat_answer_range.max;
+      isCorrect = !isNaN(val) &&
+        val >= question.nat_answer_range.min &&
+        val <= question.nat_answer_range.max;
     }
 
     if (isCorrect) {
@@ -161,13 +176,13 @@ export default function MistakesPage() {
   // Toggle option helper for interactive questions
   const handleOptionToggle = (optionId: string) => {
     if (!question) return;
-    
+
     if (question.question_type === "MCQ") {
       setUserSelected([optionId]);
     } else if (question.question_type === "MSQ") {
-      setUserSelected(prev => 
-        prev.includes(optionId) 
-          ? prev.filter(id => id !== optionId) 
+      setUserSelected(prev =>
+        prev.includes(optionId)
+          ? prev.filter(id => id !== optionId)
           : [...prev, optionId]
       );
     }
@@ -269,7 +284,7 @@ export default function MistakesPage() {
 
   const question = activeEntry ? QuestionRepository.getQuestionById(activeEntry.questionId) : null;
   const activeIndex = filteredMistakes.findIndex(m => m.questionId === activeMistake);
-  
+
   const handlePrev = activeIndex > 0 ? () => {
     setActiveMistake(filteredMistakes[activeIndex - 1].questionId);
   } : undefined;
@@ -298,7 +313,7 @@ export default function MistakesPage() {
       },
     }}>
       <div className="w-full h-full flex flex-col md:flex-row gap-4 p-2 relative overflow-hidden bg-[var(--background)]">
-        
+
         {/* Sidebar merged into a single card */}
         <div className={`flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden transition-all duration-300 shrink-0 h-full ${isSidebarCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-full md:w-80 opacity-100"}`}>
           <div className="p-4 space-y-3 flex flex-col shrink-0 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/10">
@@ -308,25 +323,25 @@ export default function MistakesPage() {
                 {filteredMistakes.length} Total
               </span>
             </div>
-            
+
             <div className="flex bg-[var(--surface-elevated)] p-1 rounded-lg">
-              <button 
+              <button
                 onClick={() => {
                   setShowMastered(false);
                   setActiveMistake(null);
                 }}
                 className={`flex-1 text-[10px] py-1.5 rounded-md font-bold transition uppercase tracking-wider ${!showMastered ? 'bg-[var(--surface)] shadow text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
-                 Pending ({mistakes.filter(m => !m.mastered).length})
+                Pending ({mistakes.filter(m => !m.mastered).length})
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setShowMastered(true);
                   setActiveMistake(null);
                 }}
                 className={`flex-1 text-[10px] py-1.5 rounded-md font-bold transition uppercase tracking-wider ${showMastered ? 'bg-[var(--surface)] shadow text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
-                 Mastered ({mistakes.filter(m => m.mastered).length})
+                Mastered ({mistakes.filter(m => m.mastered).length})
               </button>
             </div>
 
@@ -369,38 +384,36 @@ export default function MistakesPage() {
               />
             </div>
           </div>
-          
+
           {/* Half-Size Compact Questions list scrollbox */}
           <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
             {filteredMistakes.length === 0 ? (
               <div className="p-8 text-center text-xs text-[var(--text-secondary)] font-bold">
-                 No mistakes found.
+                No mistakes found.
               </div>
             ) : (
               <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredMistakes.map((m) => {
                   const isCurrent = activeMistake === m.questionId;
                   const repeatCount = m.occurrences || 1;
-                  
+
                   return (
                     <li key={m.questionId}>
                       <button
                         onClick={() => setActiveMistake(m.questionId)}
-                        className={`w-full text-left px-4 py-2.5 hover:bg-[var(--surface-elevated)] transition-colors border-l-4 ${
-                          isCurrent 
-                            ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-500' 
+                        className={`w-full text-left px-4 py-2.5 hover:bg-[var(--surface-elevated)] transition-colors border-l-4 ${isCurrent
+                            ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-500'
                             : 'border-transparent'
-                        }`}
+                          }`}
                       >
                         <div className="flex justify-between items-center gap-2">
-                           <span className="font-extrabold text-[var(--text-primary)] text-xs truncate">{m.subject}</span>
-                           <span className={`text-[9px] px-1.5 py-0.5 rounded font-black shrink-0 ${
-                             repeatCount > 2 
-                               ? "bg-red-500/15 text-red-500" 
-                               : "bg-[var(--surface-secondary)] text-[var(--text-muted)]"
-                           }`}>
-                             {repeatCount} Err
-                           </span>
+                          <span className="font-extrabold text-[var(--text-primary)] text-xs truncate">{m.subject}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black shrink-0 ${repeatCount > 2
+                              ? "bg-red-500/15 text-red-500"
+                              : "bg-[var(--surface-secondary)] text-[var(--text-muted)]"
+                            }`}>
+                            {repeatCount} Err
+                          </span>
                         </div>
                         <span className="text-[10px] text-[var(--text-secondary)] block truncate font-medium mt-0.5">{m.topic}</span>
                       </button>
@@ -415,12 +428,14 @@ export default function MistakesPage() {
         {/* Collapse Handle Button */}
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="hidden md:flex items-center justify-center w-6 h-12 my-auto bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-secondary)] rounded-r-lg -ml-6 z-20 transition shadow-sm hover:text-[var(--text-primary)] cursor-pointer shrink-0"
+          className={`hidden md:flex items-center justify-center w-6 h-12 my-auto bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] z-20 transition shadow-sm cursor-pointer shrink-0 ${
+            isSidebarCollapsed ? "ml-0 rounded-r-lg border-l-0" : "-ml-3 rounded-full"
+          }`}
           title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
-        
+
         {/* Main Content Area */}
         <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm flex flex-col h-full overflow-hidden min-w-0">
           {activeMistake && question && activeEntry ? (
@@ -430,35 +445,35 @@ export default function MistakesPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="md:hidden p-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                    className="md:hidden p-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
                     title="Toggle Sidebar"
                   >
                     <ChevronRight className={`w-4 h-4 transition-transform ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
                   </button>
                   <div>
-                     <h3 className="font-extrabold text-[var(--text-primary)] text-sm tracking-tight">Mistake Review</h3>
-                     <span className="text-[11px] text-[var(--text-muted)] font-semibold block">{question.subject} • {question.topic}</span>
+                    <h3 className="font-extrabold text-[var(--text-primary)] text-sm tracking-tight">Mistake Review</h3>
+                    <span className="text-[11px] text-[var(--text-muted)] font-semibold block">{question.subject} • {question.topic}</span>
                   </div>
 
                   {/* Confidence meter slider located right next to title */}
-                  <div className="flex items-center gap-2 min-w-[160px] bg-[var(--surface)] border border-[var(--border-subtle)] px-2.5 py-1 rounded-lg shadow-sm">
+                  <div className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-lg shadow-sm">
                     <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] shrink-0">
                       Conf: <span className="text-indigo-500 font-bold font-mono">{confidenceSlider}%</span>
                     </span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
                       value={confidenceSlider}
                       onChange={(e) => setConfidenceSlider(Number(e.target.value))}
                       onMouseUp={() => handleUpdateMistakeMeta(activeMistake, { confidence: confidenceSlider })}
                       onTouchEnd={() => handleUpdateMistakeMeta(activeMistake, { confidence: confidenceSlider })}
-                      className="w-20 sm:w-24 accent-indigo-500 cursor-pointer h-1 rounded bg-[var(--border-subtle)]"
+                      className="w-14 sm:w-20 accent-indigo-500 cursor-pointer h-1 rounded bg-[var(--border-subtle)]"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   {/* Modern CustomDropdown for category classification selector */}
                   <CustomDropdown
                     value={activeEntry.category || "Unclassified"}
@@ -468,14 +483,46 @@ export default function MistakesPage() {
                     className="text-xs w-40 font-bold"
                   />
 
+                  {/* Bookmark Toggle */}
                   <button
-                    onClick={() => setIsNotesOpen(!isNotesOpen)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg transition-colors"
+                    onClick={handleToggleBookmark}
+                    className={`p-2 border rounded-lg transition cursor-pointer hover:bg-[var(--surface-secondary)] hover:border-[var(--border-strong)] ${
+                      bookmarks.some(b => b.questionId === activeMistake)
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20" 
+                        : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-amber-500"
+                    }`}
+                    title={bookmarks.some(b => b.questionId === activeMistake) ? "Remove Bookmark" : "Bookmark Question"}
+                  >
+                    <Bookmark className={`w-4 h-4 ${bookmarks.some(b => b.questionId === activeMistake) ? "fill-amber-500" : ""}`} />
+                  </button>
+
+                  <button
+                    onClick={() => router.push(`/ai-tutor?qid=${activeMistake}`)}
+                    className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer flex items-center justify-center shrink-0"
+                    title="Explain with AI Tutor"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const nextVal = !isNotesOpen;
+                      setIsNotesOpen(nextVal);
+                      if (nextVal) {
+                        setIsSidebarCollapsed(true);
+                      }
+                    }}
+                    className={`relative p-2 border rounded-lg transition cursor-pointer flex items-center justify-center shrink-0 ${
+                      isNotesOpen
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-600 hover:bg-amber-500/20"
+                        : "bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+                    }`}
                     title="Personal Notes"
                   >
                     <StickyNote className="w-4 h-4 text-amber-500" />
-                    <span>Notes</span>
-                    {activeEntry.notes && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+                    {activeEntry.notes && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-[var(--surface)] animate-pulse" />
+                    )}
                   </button>
 
                   <button
@@ -485,9 +532,10 @@ export default function MistakesPage() {
                         setActiveMistake(null);
                       }
                     }}
-                    className="flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition"
+                    className="p-2 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-lg transition cursor-pointer flex items-center justify-center shrink-0"
+                    title="Remove from Mistakes"
                   >
-                    <Archive className="w-4 h-4" /> Remove
+                    <Archive className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -503,53 +551,66 @@ export default function MistakesPage() {
                   isPrevDisabled={activeIndex === 0}
                   isNextDisabled={activeIndex === filteredMistakes.length - 1}
                 />
-                
+
                 {/* Question Scrollable Area */}
                 <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-12 custom-scrollbar pt-12 sm:pt-14">
                   <div className="text-lg md:text-xl font-medium leading-relaxed text-[var(--text-primary)] mb-8">
-                     <AstNodeRenderer nodes={question.contentAst} />
+                    <AstNodeRenderer nodes={question.contentAst} />
                   </div>
+
+                  {/* AI insights panel */}
+                  {(activeEntry.confidence !== undefined || activeEntry.mastery !== undefined) && (
+                    <div className="mt-8 p-4 bg-rose-500/5 border border-rose-500/20 rounded-xl space-y-3">
+                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4" />
+                        AI Diagnostic Recommendation
+                      </h4>
+                      <p className="text-xs font-semibold text-[var(--text-secondary)] leading-relaxed">
+                        Based on your confidence level of {activeEntry.confidence || 50}% and mastery index of {activeEntry.mastery || 0}%, we recommend revising the core theorems for this question in the AI Tutor.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Options / NAT input - Option Validation View */}
                 <div className="flex-none p-4 sm:p-6 border-t border-[var(--border-subtle)] bg-[var(--surface-secondary)]/50 shadow-[0_-4px_10px_-2px_rgba(0,0,0,0.02)] z-10 w-full">
                   <div className="w-full">
                     {(question.question_type === "MCQ" || question.question_type === "MSQ") && (
-                       <div className={`grid gap-3 ${question.options.some(opt => opt.contentAst.some(n => n.type === 'image')) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
-                         {question.options.map(o => {
-                            const isSelected = userSelected.includes(o.option_id);
-                            const wasIncorrect = (activeEntry.selectedOptions || []).includes(o.option_id);
-                            
-                            let borderClass = "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] cursor-pointer";
-                            if (isSelected) {
-                              borderClass = "border-indigo-500 bg-indigo-50/15 dark:bg-indigo-900/10 ring-1 ring-indigo-500 cursor-pointer";
-                            } else if (wasIncorrect) {
-                              borderClass = "border-rose-500/60 border-dashed bg-rose-500/5 cursor-pointer";
-                            }
+                      <div className={`grid gap-3 ${question.options.some(opt => opt.contentAst.some(n => n.type === 'image')) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+                        {question.options.map(o => {
+                          const isSelected = userSelected.includes(o.option_id);
+                          const wasIncorrect = (activeEntry.selectedOptions || []).includes(o.option_id);
 
-                            return (
-                              <div 
-                                key={o.option_id} 
-                                onClick={() => handleOptionToggle(o.option_id)}
-                                className={`p-4 border-[2px] rounded-xl transition ${borderClass} overflow-hidden`}
-                              >
-                                <div className="flex items-start gap-3 w-full">
-                                   <div className="shrink-0 font-black text-inherit w-5 mt-0.5 flex flex-col items-center">
-                                     <span>{o.option_id}.</span>
-                                   </div>
-                                   <div className="text-[var(--text-primary)] max-w-full overflow-hidden break-words flex-1">
-                                     <AstNodeRenderer nodes={o.contentAst} />
-                                   </div>
-                                   {wasIncorrect && (
-                                     <span className="text-[8px] font-black uppercase bg-rose-500 text-white px-1.5 py-0.5 rounded tracking-wider shrink-0 mt-0.5">
-                                       Prev Wrong
-                                     </span>
-                                   )}
-                                 </div>
+                          let borderClass = "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] cursor-pointer";
+                          if (isSelected) {
+                            borderClass = "border-indigo-500 bg-indigo-50/15 dark:bg-indigo-900/10 ring-1 ring-indigo-500 cursor-pointer";
+                          } else if (wasIncorrect) {
+                            borderClass = "border-rose-500/60 border-dashed bg-rose-500/5 cursor-pointer";
+                          }
+
+                          return (
+                            <div
+                              key={o.option_id}
+                              onClick={() => handleOptionToggle(o.option_id)}
+                              className={`p-4 border-[2px] rounded-xl transition ${borderClass} overflow-hidden`}
+                            >
+                              <div className="flex items-start gap-3 w-full">
+                                <div className="shrink-0 font-black text-inherit w-5 mt-0.5 flex flex-col items-center">
+                                  <span>{o.option_id}.</span>
+                                </div>
+                                <div className="text-[var(--text-primary)] max-w-full overflow-hidden break-words flex-1">
+                                  <AstNodeRenderer nodes={o.contentAst} />
+                                </div>
+                                {wasIncorrect && (
+                                  <span className="text-[8px] font-black uppercase bg-rose-500 text-white px-1.5 py-0.5 rounded tracking-wider shrink-0 mt-0.5">
+                                    Prev Wrong
+                                  </span>
+                                )}
                               </div>
-                            );
-                          })}
-                       </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
 
                     {question.question_type === "NAT" && (
@@ -594,11 +655,10 @@ export default function MistakesPage() {
                   {/* Validate solution & mastery triggers */}
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                     {validationOutcome !== null && (
-                      <span className={`text-xs font-black uppercase tracking-wider px-3.5 py-2.5 rounded-xl border ${
-                        validationOutcome === "correct" 
-                          ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400" 
+                      <span className={`text-xs font-black uppercase tracking-wider px-3.5 py-2.5 rounded-xl border ${validationOutcome === "correct"
+                          ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
                           : "bg-red-500/10 border-red-500/20 text-rose-600 dark:text-rose-400 animate-pulse"
-                      }`}>
+                        }`}>
                         {validationOutcome === "correct" ? "✓ Correct Answer!" : "✗ Incorrect retry"}
                       </span>
                     )}
@@ -615,9 +675,9 @@ export default function MistakesPage() {
                         Mastered
                       </span>
                     ) : (
-                      <button 
+                      <button
                         onClick={() => handleUpdateMistakeMeta(activeMistake, { mastered: true })}
-                        className="px-4 py-2 text-xs font-extrabold uppercase tracking-wider bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] border border-[var(--border)] rounded-lg transition"
+                        className="px-4 py-2 text-xs font-extrabold uppercase tracking-wider bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-lg transition cursor-pointer"
                       >
                         Mark Mastered
                       </button>
@@ -626,26 +686,59 @@ export default function MistakesPage() {
                 </div>
 
               </div>
-
-              {/* Personal Notes Drawer */}
-              <PersonalNotesDrawer
-                isOpen={isNotesOpen}
-                onClose={() => setIsNotesOpen(false)}
-                notes={activeEntry.notes || ""}
-                onNotesChange={async (notes) => {
-                  const { updateMistakeNotes } = useStudyStore.getState();
-                  await updateMistakeNotes(activeMistake, notes);
-                }}
-              />
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">
-               <AlertTriangle className="w-12 h-12 text-[var(--text-muted)] mb-4 animate-bounce" />
-               <h3 className="font-bold text-lg text-[var(--text-primary)] mb-1">No mistake selected</h3>
-               <p className="text-sm text-[var(--text-muted)] text-center max-w-sm">Select a recorded mistake from the sidebar to test your retry progress or manually master the question.</p>
+              <AlertTriangle className="w-12 h-12 text-[var(--text-muted)] mb-4 animate-bounce" />
+              <h3 className="font-bold text-lg text-[var(--text-primary)] mb-1">No mistake selected</h3>
+              <p className="text-sm text-[var(--text-muted)] text-center max-w-sm">Select a recorded mistake from the sidebar to test your retry progress or manually master the question.</p>
             </div>
           )}
         </div>
+
+        {/* Inline Curved Notes Panel */}
+        {isNotesOpen && activeMistake && activeEntry && (
+          <div className="w-80 h-full flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm shrink-0 overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--surface-secondary)]">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider text-xs">
+                <StickyNote className="w-4 h-4" />
+                <span>Personal Notes</span>
+              </div>
+              <button
+                onClick={() => setIsNotesOpen(false)}
+                className="p-1 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-4 flex flex-col gap-3">
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-extrabold">
+                Add formulas, shortcuts, hints, or personal notes to this question.
+              </p>
+              <textarea
+                value={activeEntry.notes || ""}
+                onChange={async (e) => {
+                  const notes = e.target.value;
+                  const { updateMistakeNotes } = useStudyStore.getState();
+                  await updateMistakeNotes(activeMistake, notes);
+                }}
+                placeholder="Write your note here... (Changes are saved automatically)"
+                className="w-full flex-1 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)]/50 text-[var(--text-primary)] focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-none text-xs font-semibold leading-relaxed"
+              />
+            </div>
+
+            {/* Footer */}
+            <button
+              onClick={() => setIsNotesOpen(false)}
+              className="p-4 border-t border-[var(--border-subtle)] text-center bg-[var(--surface-secondary)] hover:bg-[var(--surface-elevated)] transition-colors text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-black uppercase tracking-wider cursor-pointer w-full"
+            >
+              Save & Close Note
+            </button>
+          </div>
+        )}
       </div>
     </MathJaxContext>
   );

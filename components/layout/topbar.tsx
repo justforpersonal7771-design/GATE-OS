@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "motion/react";
 
 // ... keep icons and other imports
 import { useDataStore } from "@/store/use-data-store";
-import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert } from "lucide-react";
+import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert, BrainCircuit } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Exam Setup", href: "/setup", icon: Settings },
+  { label: "AI Mentor", href: "/ai-mentor", icon: BrainCircuit },
   { label: "Mistakes", href: "/mistakes", icon: ClipboardList },
   { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
   { label: "Revision", href: "/revision", icon: RefreshCw },

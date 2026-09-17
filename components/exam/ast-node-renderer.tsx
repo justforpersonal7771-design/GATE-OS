@@ -14,6 +14,28 @@ interface AstNodeRendererProps {
   className?: string; // Additional classes for the container
 }
 
+function formatMarkdownText(text: string): React.ReactNode {
+  if (!text) return "";
+  
+  // Split by bold (**bold**)
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const boldText = part.slice(2, -2);
+      return <strong key={idx} className="font-extrabold text-[var(--text-primary)]">{boldText}</strong>;
+    }
+    
+    // Split by italic (*italic*)
+    const italicParts = part.split(/(\*[^*]+\*)/g);
+    return italicParts.map((subPart, subIdx) => {
+      if (subPart.startsWith("*") && subPart.endsWith("*")) {
+        return <em key={subIdx} className="italic text-[var(--text-secondary)]">{subPart.slice(1, -1)}</em>;
+      }
+      return subPart;
+    });
+  });
+}
+
 export const AstNodeRenderer = memo(function AstNodeRenderer({
   nodes,
   className = "",
@@ -29,7 +51,7 @@ export const AstNodeRenderer = memo(function AstNodeRenderer({
           case "text":
             return (
               <span key={i} className="whitespace-pre-wrap">
-                {node.content}
+                {formatMarkdownText(node.content)}
               </span>
             );
           case "latex-inline":

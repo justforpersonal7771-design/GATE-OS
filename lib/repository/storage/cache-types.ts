@@ -61,4 +61,31 @@ export interface GatePrepDB extends DBSchema {
     key: string;
     value: CustomTestTemplate;
   };
+  AIResponses: {
+    key: string;
+    value: AIResponseRecord;
+  };
+  AIGeneratedQuestions: {
+    key: string;
+    value: RenderableQuestion;
+  };
+  AIMemory: {
+    key: string;
+    value: AIMemoryRecord;
+  };
+}
+
+export interface AIResponseRecord {
+  promptHash: string;
+  response: string;
+  createdDate: string;
+  questionId?: string;
+  topic?: string;
+  ttl: number; // TTL timestamp in milliseconds
+}
+
+export interface AIMemoryRecord {
+  key: string;
+  value: any;
+  updatedAt: string;
 }

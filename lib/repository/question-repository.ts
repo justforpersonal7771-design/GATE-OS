@@ -199,6 +199,39 @@ class QuestionRepositorySingleton {
     return this.status === "READY" && this.indexes !== null;
   }
 
+  public registerDynamicQuestion(q: RenderableQuestion) {
+    this.checkReady();
+    if (!this.indexes!.questionsById.has(q.question_id)) {
+      this.indexes!.allQuestions.push(q);
+      this.indexes!.questionsById.set(q.question_id, q);
+
+      // Add to subject map
+      const subList = this.indexes!.questionsBySubject.get(q.subject) || [];
+      subList.push(q);
+      this.indexes!.questionsBySubject.set(q.subject, subList);
+
+      // Add to topic map
+      const topList = this.indexes!.questionsByTopic.get(q.topic) || [];
+      topList.push(q);
+      this.indexes!.questionsByTopic.set(q.topic, topList);
+
+      // Add to difficulty map
+      const diffList = this.indexes!.questionsByDifficulty.get(q.difficulty) || [];
+      diffList.push(q);
+      this.indexes!.questionsByDifficulty.set(q.difficulty, diffList);
+
+      // Add to section map
+      const secList = this.indexes!.questionsBySection.get(q.section) || [];
+      secList.push(q);
+      this.indexes!.questionsBySection.set(q.section, secList);
+
+      // Add to year_shift map
+      const paperList = this.indexes!.questionsByYearShift.get(q.year_shift) || [];
+      paperList.push(q);
+      this.indexes!.questionsByYearShift.set(q.year_shift, paperList);
+    }
+  }
+
   private checkReady() {
     if (!this.isReady() || !this.indexes) {
       throw new Error(

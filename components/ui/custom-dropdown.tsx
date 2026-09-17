@@ -49,7 +49,7 @@ export function CustomDropdown({ options, value, onChange, placeholder = "Select
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-[var(--info)] transition-all"
+        className="w-full flex items-center justify-between px-4 py-3 bg-[var(--surface-secondary)] hover:bg-[var(--surface-secondary)]/80 hover:border-[var(--border-strong)] border border-[var(--border)] rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-[var(--info)] transition-all cursor-pointer"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >

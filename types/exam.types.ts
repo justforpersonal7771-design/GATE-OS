@@ -35,6 +35,7 @@ export interface TestConfig {
   questionCount?: number;
   seed?: number;
   customBlocks?: CustomTestBlock[];
+  isAiGenerated?: boolean;
 }
 
 export interface ExamQuestion {
