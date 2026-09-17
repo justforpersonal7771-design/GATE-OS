@@ -15,37 +15,37 @@ import {
 // Dynamic imports with Skeleton Loading placeholders to guarantee performance (Part 12)
 const HeroSection = dynamic(() => import("@/components/dashboard/hero-section").then(m => m.HeroSection), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-64 rounded-3xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-3xl" />
 });
 
 const QuickActions = dynamic(() => import("@/components/dashboard/quick-actions").then(m => m.QuickActions), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-32 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-32 rounded-2xl" />
 });
 
 const ProgressVisualizer = dynamic(() => import("@/components/dashboard/progress-visualizer").then(m => m.ProgressVisualizer), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-64 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-2xl" />
 });
 
 const FocusCenter = dynamic(() => import("@/components/dashboard/focus-center").then(m => m.FocusCenter), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-48 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-48 rounded-2xl" />
 });
 
 const GithubHeatmap = dynamic(() => import("@/components/dashboard/github-heatmap").then(m => m.GithubHeatmap), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-32 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-32 rounded-2xl" />
 });
 
 const ActivityTimeline = dynamic(() => import("@/components/dashboard/activity-timeline").then(m => m.ActivityTimeline), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[400px] rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-[400px] rounded-2xl" />
 });
 
 const RecentExams = dynamic(() => import("@/components/dashboard/recent-exams").then(m => m.RecentExams), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[380px] rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-[380px] rounded-2xl" />
 });
 
 export default function Home() {
@@ -160,7 +160,7 @@ export default function Home() {
       {/* 3. Premium Analytics Metrics Row Grid (Part 7) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Metric accuracy */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Practice Accuracy</span>
@@ -170,7 +170,7 @@ export default function Home() {
         </div>
 
         {/* Metric Solved */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Questions Solved</span>
@@ -180,7 +180,7 @@ export default function Home() {
         </div>
 
         {/* Metric Hours */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Study Hours</span>
@@ -190,7 +190,7 @@ export default function Home() {
         </div>
 
         {/* Metric Streak */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Active Streak</span>

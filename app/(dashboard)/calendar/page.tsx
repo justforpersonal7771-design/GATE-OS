@@ -5,7 +5,7 @@ import { Calendar } from "lucide-react";
 
 const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[560px] rounded-3xl" />
+  loading: () => <div className="skeleton-shimmer h-[560px] rounded-3xl" />
 });
 
 export default function CalendarPage() {

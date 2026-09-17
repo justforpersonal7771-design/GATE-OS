@@ -12,7 +12,7 @@ import { CalendarEvent } from "@/types/calendar.types";
 
 const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[560px]" />,
+  loading: () => <div className="skeleton-shimmer h-[560px]" />,
 });
 
 const TARGET_EXAM_DATE_KEY = "target_exam_date";
