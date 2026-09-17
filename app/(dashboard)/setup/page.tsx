@@ -11,6 +11,7 @@ import { CustomTestBuilder } from "@/components/exam/custom-test-builder";
 import { Settings, Play, ServerCog, Target, FileText, CheckCircle2, Sparkles, ChevronDown, ChevronUp, ChevronRight, Search, X } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function ExamSetupPage() {
   const router = useRouter();
@@ -320,7 +321,12 @@ export default function ExamSetupPage() {
     <div className="w-full flex justify-center pb-12">
       <div className="w-full flex flex-col gap-6">
         
-        <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--border)] pb-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--border)] pb-4"
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
                <Settings className="w-6 h-6" />
@@ -331,30 +337,44 @@ export default function ExamSetupPage() {
             </div>
           </div>
 
-          <div className="flex bg-[var(--surface-secondary)] border border-[var(--border-subtle)] p-1 rounded-xl shadow-sm">
+          <div className="relative flex bg-[var(--surface-secondary)] border border-[var(--border-subtle)] p-1 rounded-xl shadow-sm">
             <button
               onClick={() => setSourceType("standard")}
-              className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+              className={`relative z-10 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-colors cursor-pointer ${
                 sourceType === "standard"
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "text-white"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
+              {sourceType === "standard" && (
+                <motion.span
+                  layoutId="setup-source-pill"
+                  className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                />
+              )}
               Standard GATE
             </button>
             <button
               onClick={() => setSourceType("ai_generated")}
-              className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+              className={`relative z-10 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
                 sourceType === "ai_generated"
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "text-white"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
+              {sourceType === "ai_generated" && (
+                <motion.span
+                  layoutId="setup-source-pill"
+                  className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                />
+              )}
               <Sparkles className="w-3.5 h-3.5" />
               AI Generated
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {sourceType === "ai_generated" ? (
           <div className="space-y-6">
@@ -395,14 +415,15 @@ export default function ExamSetupPage() {
                     <span className="text-lg font-black text-indigo-500 font-mono">{selectedQIds.size} total</span>
                   </div>
                   
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     onClick={handleStartAITest}
                     disabled={selectedQIds.size === 0}
                     className="flex items-center gap-2 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-600/10"
                   >
                     <Play className="w-4 h-4 fill-current animate-pulse" />
                     <span>Start Test ({selectedQIds.size})</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
@@ -469,17 +490,23 @@ export default function ExamSetupPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                {Array.from(groupedAIQuestions.entries()).map(([sectionName, subjectsMap]) => {
+                {Array.from(groupedAIQuestions.entries()).map(([sectionName, subjectsMap], sectionIdx) => {
                   const sectionQs: any[] = [];
                   subjectsMap.forEach(topicsMap => {
                     topicsMap.forEach(qs => sectionQs.push(...qs));
                   });
-                  
+
                   const isAllSectionSelected = sectionQs.every(q => selectedQIds.has(q.question_id));
                   const isSomeSectionSelected = sectionQs.some(q => selectedQIds.has(q.question_id)) && !isAllSectionSelected;
 
                   return (
-                    <div key={sectionName} className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm space-y-4">
+                    <motion.div
+                      key={sectionName}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(sectionIdx * 0.06, 0.3) }}
+                      className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm space-y-4"
+                    >
                       <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-3 bg-[var(--surface-secondary)]/10 px-3 py-2 rounded-xl">
                         <div className="flex items-center gap-3">
                           <button
@@ -627,7 +654,15 @@ export default function ExamSetupPage() {
                                                   </div>
                                                 </div>
 
+                                                <AnimatePresence initial={false}>
                                                 {isQExpanded && (
+                                                  <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: "auto", opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="overflow-hidden"
+                                                  >
                                                   <div className="mt-3.5 pl-6 border-l-2 border-indigo-500 space-y-4 text-xs font-medium text-[var(--text-secondary)]">
                                                     <div className="p-3.5 bg-[var(--surface-secondary)]/30 border border-[var(--border-subtle)] rounded-xl leading-relaxed whitespace-pre-wrap">
                                                       <AstNodeRenderer nodes={q.contentAst || []} />
@@ -666,7 +701,9 @@ export default function ExamSetupPage() {
                                                       </div>
                                                     )}
                                                   </div>
+                                                  </motion.div>
                                                 )}
+                                                </AnimatePresence>
                                               </div>
                                             );
                                           })}
@@ -680,7 +717,7 @@ export default function ExamSetupPage() {
                           );
                         })}
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -792,29 +829,41 @@ export default function ExamSetupPage() {
                   )}
 
                   <div className="pt-6">
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
                       onClick={handleGenerate}
                       className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold tracking-wide shadow-md transition-all flex items-center justify-center gap-2 group cursor-pointer border-0"
                     >
                       <Target className="w-5 h-5 group-hover:scale-110 transition-transform" /> Generate Blueprint
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="w-full lg:w-[420px] shrink-0">
-               <div className={`sticky top-24 bg-[var(--surface)] border ${currentDraft ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-[var(--border)]'} rounded-3xl p-6 shadow-sm overflow-hidden transition-colors`}>
+               <motion.div
+                 layout
+                 className={`sticky top-24 bg-[var(--surface)] border ${currentDraft ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-[var(--border)]'} rounded-3xl p-6 shadow-sm overflow-hidden transition-colors`}
+               >
                   <div className="flex items-center gap-3 mb-6">
                     <div className={`p-2 rounded-lg ${currentDraft ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
                        <FileText className="w-5 h-5" />
                     </div>
                     <h3 className="font-bold text-lg text-[var(--text-primary)]">Generated Blueprint</h3>
                   </div>
-                  
+
+                  <AnimatePresence mode="wait">
                   {currentDraft && draftStats ? (
-                    <div className="space-y-6">
-                      
+                    <motion.div
+                      key="stats"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-6"
+                    >
+
                       <div className="grid grid-cols-2 gap-3">
                          <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
                             <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Questions</span>
@@ -873,7 +922,8 @@ export default function ExamSetupPage() {
                          </div>
                       </div>
 
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
                         onClick={async () => {
                           await useExamRuntimeStore.getState().startSession(currentDraft);
                           router.push("/exam/session");
@@ -881,17 +931,25 @@ export default function ExamSetupPage() {
                         className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black tracking-wider uppercase shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
                       >
                         Deploy Session <Play className="w-5 h-5 fill-current" />
-                      </button>
-                      
-                    </div>
+                      </motion.button>
+
+                    </motion.div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--surface-secondary)]/50 p-6">
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--surface-secondary)]/50 p-6"
+                    >
                        <ServerCog className="w-10 h-10 text-gray-300 dark:text-gray-700 mb-3" />
                        <h4 className="font-bold text-[var(--text-primary)] text-sm mb-1">Awaiting Configuration</h4>
                        <p className="text-xs font-medium text-[var(--text-muted)]">Set your parameters and hit Generate to compile the test.</p>
-                    </div>
+                    </motion.div>
                   )}
-               </div>
+                  </AnimatePresence>
+               </motion.div>
             </div>
           </div>
         )}
