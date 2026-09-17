@@ -13,6 +13,7 @@ import {
   Sparkles, Flame, CheckCircle, Lightbulb, Compass, Award 
 } from "lucide-react";
 import { LearningEngine, PersonalizedIntelligence } from "@/lib/learning/LearningEngine";
+import { motion } from "motion/react";
 
 export default function AnalyticsDashboardPage() {
   const { isInitialized } = useDataStore();
@@ -74,6 +75,14 @@ export default function AnalyticsDashboardPage() {
   const weakTopics = topicsWithAcc.filter(t => t.acc < 50).sort((a,b) => a.acc - b.acc);
   const strongTopics = topicsWithAcc.filter(t => t.acc >= 75).sort((a,b) => b.acc - a.acc);
 
+  const ChartEmptyState = ({ label }: { label: string }) => (
+    <div className="h-full w-full flex flex-col items-center justify-center text-center gap-2">
+      <TrendingUp className="w-8 h-8 text-[var(--text-muted)] opacity-40" />
+      <p className="text-xs font-bold text-[var(--text-secondary)]">No data yet</p>
+      <p className="text-[11px] text-[var(--text-muted)] max-w-[220px]">{label}</p>
+    </div>
+  );
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -90,12 +99,12 @@ export default function AnalyticsDashboardPage() {
     return null;
   };
 
-  const sortedSessions = [...dashboardMetrics.recentSessions].reverse();
+  const sortedSessions = [...dashboardMetrics.recentSessions].filter(s => s.status === "SUBMITTED").reverse();
   const trendData = sortedSessions.map((s, idx) => {
     return {
       session: `S${idx + 1}`,
       score: s.score?.totalScore || 0,
-      accuracy: 50 + (((idx * 17) % 40) + 1), // accuracy trend
+      accuracy: s.accuracy || 0,
     };
   });
 
@@ -103,7 +112,12 @@ export default function AnalyticsDashboardPage() {
     <div className="w-full mx-auto p-4 md:p-6 space-y-8 bg-[var(--background)] font-sans">
       
       {/* Page Title */}
-      <div className="flex justify-between items-end">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex justify-between items-end"
+      >
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
             <TrendingUp className="w-8 h-8 text-indigo-500" />
@@ -113,13 +127,18 @@ export default function AnalyticsDashboardPage() {
             Observe learning metrics, weak points, and adaptive recommendations.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* 1. Personalized Intelligence HUD (Part 1) */}
       {!loadingIntel && intel && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Mastery Hud */}
-          <div className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
+          >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500" />
             <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Mastery Score</span>
             <div className="flex items-end gap-2">
@@ -128,10 +147,15 @@ export default function AnalyticsDashboardPage() {
                 <CheckCircle className="w-3.5 h-3.5" /> Core CSE
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Readiness Score Hud */}
-          <div className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
+          >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />
             <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Readiness Index</span>
             <div className="flex items-end gap-2">
@@ -140,10 +164,15 @@ export default function AnalyticsDashboardPage() {
                 <Award className="w-3.5 h-3.5" /> Exam Ready
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Confidence Score Hud */}
-          <div className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
+          >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
             <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Confidence Level</span>
             <div className="flex items-end gap-2">
@@ -152,10 +181,15 @@ export default function AnalyticsDashboardPage() {
                 <Sparkles className="w-3.5 h-3.5" /> Accuracy/Speed
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Study Momentum Hud */}
-          <div className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
+          >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500" />
             <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Learning Consistency</span>
             <div className="flex items-end gap-2">
@@ -164,7 +198,7 @@ export default function AnalyticsDashboardPage() {
                 <Flame className="w-3.5 h-3.5 fill-rose-500 stroke-none" /> Active Days
               </span>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -181,10 +215,16 @@ export default function AnalyticsDashboardPage() {
               
               <div className="space-y-3.5">
                 {intel.insights.map((insight, idx) => (
-                  <div key={idx} className="flex gap-3 items-start p-3 bg-[var(--surface-secondary)]/50 border border-[var(--border-subtle)] rounded-xl">
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: Math.min(idx * 0.05, 0.3) }}
+                    className="flex gap-3 items-start p-3 bg-[var(--surface-secondary)]/50 border border-[var(--border-subtle)] rounded-xl"
+                  >
                     <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0 mt-1.5" />
                     <p className="text-xs font-semibold leading-relaxed text-[var(--text-secondary)]">{insight}</p>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -221,78 +261,110 @@ export default function AnalyticsDashboardPage() {
       {/* Charts HUD Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Trend Chart */}
-        <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm"
+        >
           <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)] mb-6 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-indigo-500" />
             Accuracy Trend (Recent Exams)
           </h3>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-                <XAxis dataKey="session" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: "var(--border)", strokeWidth: 1, strokeDasharray: "4 4" }} />
-                <Area type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAccuracy)" activeDot={{ r: 6, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendData.length === 0 ? (
+              <ChartEmptyState label="Complete a mock test to start tracking your accuracy trend across exams." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+                  <XAxis dataKey="session" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: "var(--border)", strokeWidth: 1, strokeDasharray: "4 4" }} />
+                  <Area type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAccuracy)" activeDot={{ r: 6, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Difficulty Analysis */}
-        <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm"
+        >
           <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)] mb-6 flex items-center gap-2">
             <Target className="w-4 h-4 text-rose-500" />
             Difficulty Analysis
           </h3>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={diffData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="left" orientation="left" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="right" orientation="right" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px' }} />
-                <Bar yAxisId="left" dataKey="Attempted" name="Questions Solved" fill="#cbd5e1" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar yAxisId="right" dataKey="Accuracy" name="Accuracy %" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
+            {diffData.length === 0 ? (
+              <ChartEmptyState label="Difficulty-wise performance will appear once you attempt questions across difficulty levels." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={diffData}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" orientation="left" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
+                  <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px' }} />
+                  <Bar yAxisId="left" dataKey="Attempted" name="Questions Solved" fill="#cbd5e1" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                  <Bar yAxisId="right" dataKey="Accuracy" name="Accuracy %" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Subject Dashboard */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm"
+      >
         <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)] mb-6 flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-indigo-500" />
           Subject Comparison Dashboard
         </h3>
         <div className="h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={subjectData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} horizontal={false} />
-              <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis dataKey="name" type="category" width={110} stroke="var(--text-muted)" fontSize={9} tickLine={false} axisLine={false} />
-              <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ paddingBottom: '10px', fontSize: '10px' }} />
-              <Bar dataKey="Attempted" name="Attempts" fill="#94a3b8" radius={[0, 4, 4, 0]} maxBarSize={16} />
-              <Bar dataKey="Accuracy" name="Accuracy %" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={16} />
-            </BarChart>
-          </ResponsiveContainer>
+          {subjectData.length === 0 ? (
+            <ChartEmptyState label="Subject-wise comparisons will appear once you complete a mock test or subject-wise practice." />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={subjectData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} horizontal={false} />
+                <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" width={110} stroke="var(--text-muted)" fontSize={9} tickLine={false} axisLine={false} />
+                <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
+                <Legend iconType="circle" wrapperStyle={{ paddingBottom: '10px', fontSize: '10px' }} />
+                <Bar dataKey="Attempted" name="Attempts" fill="#94a3b8" radius={[0, 4, 4, 0]} maxBarSize={16} />
+                <Bar dataKey="Accuracy" name="Accuracy %" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Weak & Strong Topics table */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weak Topics */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col"
+        >
           <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-rose-500/10 flex items-center">
             <h3 className="font-extrabold text-xs uppercase tracking-widest text-rose-600 dark:text-rose-400">Weak Topics (&lt; 50% Accuracy)</h3>
           </div>
@@ -307,15 +379,20 @@ export default function AnalyticsDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {weakTopics.map(t => (
-                    <tr key={t.topic}>
+                  {weakTopics.map((t, idx) => (
+                    <motion.tr
+                      key={t.topic}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: Math.min(idx * 0.03, 0.3) }}
+                    >
                       <td className="px-4 py-3">
                         <span className="font-bold text-[var(--text-primary)] block truncate">{t.topic}</span>
                         <span className="text-[10px] text-[var(--text-muted)] font-semibold block truncate mt-0.5">{t.subject}</span>
                       </td>
                       <td className="px-4 py-3 text-center font-bold font-mono text-[var(--text-secondary)]">{t.attempted}</td>
                       <td className="px-4 py-3 text-right font-black text-rose-600 dark:text-rose-400 font-mono">{t.acc.toFixed(0)}%</td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
@@ -325,10 +402,15 @@ export default function AnalyticsDashboardPage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Strong Topics */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col"
+        >
           <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-emerald-500/10 flex items-center">
             <h3 className="font-extrabold text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Strong Topics (&gt; 75% Accuracy)</h3>
           </div>
@@ -343,15 +425,20 @@ export default function AnalyticsDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {strongTopics.map(t => (
-                    <tr key={t.topic}>
+                  {strongTopics.map((t, idx) => (
+                    <motion.tr
+                      key={t.topic}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: Math.min(idx * 0.03, 0.3) }}
+                    >
                       <td className="px-4 py-3">
                         <span className="font-bold text-[var(--text-primary)] block truncate">{t.topic}</span>
                         <span className="text-[10px] text-[var(--text-muted)] font-semibold block truncate mt-0.5">{t.subject}</span>
                       </td>
                       <td className="px-4 py-3 text-center font-bold font-mono text-[var(--text-secondary)]">{t.attempted}</td>
                       <td className="px-4 py-3 text-right font-black text-emerald-600 dark:text-emerald-400 font-mono">{t.acc.toFixed(0)}%</td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
@@ -361,7 +448,7 @@ export default function AnalyticsDashboardPage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
 
     </div>

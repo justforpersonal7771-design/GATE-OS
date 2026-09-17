@@ -2,6 +2,7 @@ import { AnalyticsSnapshot } from "@/types/analytics.types";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { AnalyticsEngine } from "./analytics-engine";
 import { ExamSession } from "@/types/exam-runtime.types";
+import { toLocalDateStr } from "@/lib/utils";
 
 export class SnapshotEngine {
   public static async generateAndSaveDailySnapshot(): Promise<AnalyticsSnapshot | null> {
@@ -12,7 +13,7 @@ export class SnapshotEngine {
       
       const metrics = await AnalyticsEngine.generateDashboardMetrics(sessions);
       
-      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      const today = toLocalDateStr(); // YYYY-MM-DD, local calendar day
       
       // Convert arrays back to records for the snapshot
       const subjectAnalyticsRecord: Record<string, any> = {};

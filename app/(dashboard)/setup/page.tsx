@@ -8,12 +8,14 @@ import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
 import { ExamType, TestConfig } from "@/types/exam.types";
 import { CustomTestBuilder } from "@/components/exam/custom-test-builder";
-import { Settings, Play, ServerCog, Target, FileText, CheckCircle2 } from "lucide-react";
+import { Settings, Play, ServerCog, Target, FileText, CheckCircle2, Sparkles, ChevronDown, ChevronUp, ChevronRight, Search, X } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
+import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function ExamSetupPage() {
   const router = useRouter();
-  const { isInitialized } = useDataStore();
+  const { isInitialized, totalQuestions } = useDataStore();
   const { createDraft, currentDraft } = useExamStore();
 
   const [examType, setExamType] = useState<ExamType>("YEAR_PAPER");
@@ -29,65 +31,222 @@ export default function ExamSetupPage() {
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [maxAvailable, setMaxAvailable] = useState<number>(0);
+  const [sourceType, setSourceType] = useState<"standard" | "ai_generated">("standard");
 
   const [generationTimeMs, setGenerationTimeMs] = useState<number | null>(null);
+
+  // AI-Generated Dashboard specific states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSubject, setFilterSubject] = useState("ALL");
+  const [filterTopic, setFilterTopic] = useState("ALL");
+  const [filterDifficulty, setFilterDifficulty] = useState("ALL");
+  const [selectedQIds, setSelectedQIds] = useState<Set<string>>(new Set());
+  const [testName, setTestName] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [expandedSetupQId, setExpandedSetupQId] = useState<string | null>(null);
+
+  // Compute AI metrics dynamically
+  const aiQuestionsList = useMemo(() => {
+    if (!isInitialized) return [];
+    return QuestionRepository.getAllQuestions().filter(q => (q as any).isAiGenerated === true);
+  }, [isInitialized, totalQuestions]);
+
+  const aiSubjects = useMemo(() => {
+    return Array.from(new Set(aiQuestionsList.map(q => q.subject).filter(Boolean))).sort();
+  }, [aiQuestionsList]);
+
+  const aiTopics = useMemo(() => {
+    const list = filterSubject && filterSubject !== "ALL" 
+      ? aiQuestionsList.filter(q => q.subject === filterSubject)
+      : aiQuestionsList;
+    return Array.from(new Set(list.map(q => q.topic).filter(Boolean))).sort();
+  }, [aiQuestionsList, filterSubject]);
+
+  // Compute dynamic grouped mapped layout tree
+  const groupedAIQuestions = useMemo(() => {
+    let list = [...aiQuestionsList];
+    if (filterSubject && filterSubject !== "ALL") {
+      list = list.filter(q => q.subject === filterSubject);
+    }
+    if (filterTopic && filterTopic !== "ALL") {
+      list = list.filter(q => q.topic === filterTopic);
+    }
+    if (filterDifficulty && filterDifficulty !== "ALL") {
+      list = list.filter(q => q.difficulty === filterDifficulty);
+    }
+    if (searchQuery.trim()) {
+      const sQuery = searchQuery.toLowerCase();
+      list = list.filter(q => 
+        (q.questionTextRaw || "").toLowerCase().includes(sQuery) || 
+        (q.topic || "").toLowerCase().includes(sQuery)
+      );
+    }
+
+    // Group hierarchy: Section -> Subject -> Topic
+    const sectionsMap = new Map<string, Map<string, Map<string, typeof aiQuestionsList>>>();
+    for (const q of list) {
+      const section = q.section || "AI Custom Practice";
+      const subject = q.subject || "General Subject";
+      const topic = q.topic || "General Topic";
+
+      if (!sectionsMap.has(section)) {
+        sectionsMap.set(section, new Map());
+      }
+      const subjectsMap = sectionsMap.get(section)!;
+
+      if (!subjectsMap.has(subject)) {
+        subjectsMap.set(subject, new Map());
+      }
+      const topicsMap = subjectsMap.get(subject)!;
+
+      if (!topicsMap.has(topic)) {
+        topicsMap.set(topic, []);
+      }
+      topicsMap.get(topic)!.push(q);
+    }
+    return sectionsMap;
+  }, [aiQuestionsList, filterSubject, filterTopic, filterDifficulty, searchQuery]);
+
+  // Helper selectors
+  const toggleSelectQuestion = (qId: string) => {
+    setSelectedQIds(prev => {
+      const next = new Set(prev);
+      if (next.has(qId)) next.delete(qId);
+      else next.add(qId);
+      return next;
+    });
+  };
+
+  const toggleSelectTopic = (topicName: string, topicQsList: any[]) => {
+    setSelectedQIds(prev => {
+      const next = new Set(prev);
+      const qIds = topicQsList.map(q => q.question_id);
+      const allSelected = qIds.every(id => next.has(id));
+      if (allSelected) {
+        qIds.forEach(id => next.delete(id));
+      } else {
+        qIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectSubject = (subjectName: string, subjectQsList: any[]) => {
+    setSelectedQIds(prev => {
+      const next = new Set(prev);
+      const qIds = subjectQsList.map(q => q.question_id);
+      const allSelected = qIds.every(id => next.has(id));
+      if (allSelected) {
+        qIds.forEach(id => next.delete(id));
+      } else {
+        qIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectSection = (sectionName: string, sectionQsList: any[]) => {
+    setSelectedQIds(prev => {
+      const next = new Set(prev);
+      const qIds = sectionQsList.map(q => q.question_id);
+      const allSelected = qIds.every(id => next.has(id));
+      if (allSelected) {
+        qIds.forEach(id => next.delete(id));
+      } else {
+        qIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleStartAITest = async () => {
+    if (selectedQIds.size === 0) return;
+    const selectedQs = Array.from(selectedQIds)
+      .map(id => QuestionRepository.getQuestionById(id))
+      .filter(Boolean) as any[];
+
+    const examQuestions = selectedQs.map((q, idx) => ({
+      questionId: q.question_id,
+      sequence: idx + 1
+    }));
+
+    const draft = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      config: {
+        examType: "CUSTOM_TEST" as const,
+        isAiGenerated: true,
+        title: testName.trim() || `AI Adaptive Session #${Date.now().toString().slice(-4)}`
+      } as any,
+      questions: examQuestions,
+      createdAt: new Date().toISOString()
+    };
+
+    await useExamRuntimeStore.getState().startSession(draft);
+    router.push("/exam/session");
+  };
+
+  useEffect(() => {
+    if (isInitialized) {
+      useDataStore.getState().refreshAIGeneratedQuestions();
+    }
+  }, [isInitialized, sourceType]);
 
   useEffect(() => {
     if (isInitialized) {
       const repo = QuestionRepository;
-      const papers = repo.getAvailablePapers();
-      const subjects = repo.getAvailableSubjects();
-      const topics = repo.getAvailableTopics();
-      const sections = repo.getAvailableSections();
+      const allQs = repo.getAllQuestions().filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated);
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      const papers = Array.from(new Set(allQs.map(q => q.year_shift).filter(Boolean)));
+      const subjects = Array.from(new Set(allQs.map(q => q.subject).filter(Boolean)));
+      const topics = Array.from(new Set(allQs.map(q => q.topic).filter(Boolean)));
+      const sections = Array.from(new Set(allQs.map(q => q.section).filter(Boolean)));
+
       setAvailablePapers(papers.sort());
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvailableSubjects(subjects.sort());
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvailableTopics(topics.sort());
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvailableSections(sections.sort());
 
-      if (papers.length > 0) setSelectedPaper(papers[0]);
-      if (subjects.length > 0) setSelectedSubject(subjects[0]);
-      if (topics.length > 0) setSelectedTopic(topics[0]);
-      if (sections.length > 0) setSelectedSection(sections[0]);
+      setSelectedPaper(papers.length > 0 ? papers[0] : "");
+      setSelectedSubject(subjects.length > 0 ? subjects[0] : "");
+      setSelectedTopic(topics.length > 0 ? topics[0] : "");
+      setSelectedSection(sections.length > 0 ? sections[0] : "");
     }
-  }, [isInitialized]);
+  }, [isInitialized, sourceType, totalQuestions]);
 
   useEffect(() => {
     if (isInitialized && selectedSubject && (examType === "TOPIC_TEST" || examType === "SUBJECT_TEST")) {
       const repo = QuestionRepository;
-      const filteredTopics = repo.getAvailableTopics(selectedSubject);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      const allQs = repo.getSubjectBank(selectedSubject).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated);
+      const filteredTopics = Array.from(new Set(allQs.map(q => q.topic).filter(Boolean)));
+      
       setAvailableTopics(filteredTopics.sort());
       if (filteredTopics.length > 0 && !filteredTopics.includes(selectedTopic)) setSelectedTopic(filteredTopics[0]);
     }
-  }, [selectedSubject, isInitialized, examType, selectedTopic]);
+  }, [selectedSubject, isInitialized, examType, selectedTopic, sourceType]);
 
   useEffect(() => {
     if (isInitialized) {
       const repo = QuestionRepository;
       let count = 0;
       if (examType === "SUBJECT_TEST" && selectedSubject) {
-        count = repo.getSubjectBank(selectedSubject).length;
+        count = repo.getSubjectBank(selectedSubject).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
       } else if (examType === "TOPIC_TEST" && selectedTopic) {
-        count = repo.getQuestionsByTopic(selectedTopic).length;
+        count = repo.getQuestionsByTopic(selectedTopic).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
       } else if (examType === "SECTION_TEST" && selectedSection) {
-        count = repo.getQuestionsBySection(selectedSection).length;
+        count = repo.getQuestionsBySection(selectedSection).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
       }
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMaxAvailable(count);
       if (questionCount > count && count > 0) {
-         // eslint-disable-next-line react-hooks/set-state-in-effect
          setQuestionCount(count);
       }
     }
-  }, [examType, selectedSubject, selectedTopic, selectedSection, isInitialized, questionCount]);
+  }, [examType, selectedSubject, selectedTopic, selectedSection, isInitialized, questionCount, sourceType]);
 
   const handleGenerate = () => {
-    const config: TestConfig = { examType };
+    const config: TestConfig = { 
+      examType,
+      isAiGenerated: sourceType === "ai_generated"
+    };
 
     if (examType === "YEAR_PAPER") {
       config.yearShift = selectedPaper;
@@ -160,11 +319,15 @@ export default function ExamSetupPage() {
 
   return (
     <div className="w-full flex justify-center pb-12">
-      <div className="w-full flex flex-col lg:flex-row gap-8">
+      <div className="w-full flex flex-col gap-6">
         
-        {/* Left Column: Configuration */}
-        <div className="flex-1 space-y-6">
-          <div className="mb-6 flex items-center gap-4 border-b border-[var(--border)] pb-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--border)] pb-4"
+        >
+          <div className="flex items-center gap-4">
             <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
                <Settings className="w-6 h-6" />
             </div>
@@ -174,12 +337,400 @@ export default function ExamSetupPage() {
             </div>
           </div>
 
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm p-6 md:p-8 shadow-sm">
-            <div className="mb-8 max-w-md">
-              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                Deployment Type
-              </label>
-              <CustomDropdown
+          <div className="relative flex bg-[var(--surface-secondary)] border border-[var(--border-subtle)] p-1 rounded-xl shadow-sm">
+            <button
+              onClick={() => setSourceType("standard")}
+              className={`relative z-10 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-colors cursor-pointer ${
+                sourceType === "standard"
+                  ? "text-white"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {sourceType === "standard" && (
+                <motion.span
+                  layoutId="setup-source-pill"
+                  className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                />
+              )}
+              Standard GATE
+            </button>
+            <button
+              onClick={() => setSourceType("ai_generated")}
+              className={`relative z-10 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
+                sourceType === "ai_generated"
+                  ? "text-white"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {sourceType === "ai_generated" && (
+                <motion.span
+                  layoutId="setup-source-pill"
+                  className="absolute inset-0 bg-indigo-600 rounded-lg shadow-sm -z-10"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                />
+              )}
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Generated
+            </button>
+          </div>
+        </motion.div>
+
+        {sourceType === "ai_generated" ? (
+          <div className="space-y-6">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex-1 flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={testName}
+                    onChange={(e) => setTestName(e.target.value)}
+                    placeholder="Enter custom test name (e.g. AI Practice Session #1)"
+                    className="px-4 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-[var(--text-primary)] flex-1 min-w-[200px]"
+                  />
+                  
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by keyword or topic..."
+                      className="pl-10 pr-4 py-3 w-full bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-[var(--text-primary)]"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-3 w-5 h-5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer bg-transparent border-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-[10px] font-black uppercase text-[var(--text-muted)] block tracking-wide">Selected Questions</span>
+                    <span className="text-lg font-black text-indigo-500 font-mono">{selectedQIds.size} total</span>
+                  </div>
+                  
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleStartAITest}
+                    disabled={selectedQIds.size === 0}
+                    className="flex items-center gap-2 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-600/10"
+                  >
+                    <Play className="w-4 h-4 fill-current animate-pulse" />
+                    <span>Start Test ({selectedQIds.size})</span>
+                  </motion.button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-[var(--border-subtle)]">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Subject:</span>
+                  <CustomDropdown
+                    value={filterSubject}
+                    onChange={(val) => {
+                      setFilterSubject(val);
+                      setFilterTopic("ALL");
+                    }}
+                    options={[{ label: "All Subjects", value: "ALL" }, ...aiSubjects.map(s => ({ label: s, value: s }))]}
+                    className="w-40 text-xs font-bold"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Topic:</span>
+                  <CustomDropdown
+                    value={filterTopic}
+                    onChange={setFilterTopic}
+                    options={[{ label: "All Topics", value: "ALL" }, ...aiTopics.map(t => ({ label: t, value: t }))]}
+                    className="w-44 text-xs font-bold"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Difficulty:</span>
+                  <CustomDropdown
+                    value={filterDifficulty}
+                    onChange={setFilterDifficulty}
+                    options={[
+                      { label: "All Difficulties", value: "ALL" },
+                      { label: "Easy", value: "Easy" },
+                      { label: "Medium", value: "Medium" },
+                      { label: "Hard", value: "Hard" }
+                    ]}
+                    className="w-40 text-xs font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {groupedAIQuestions.size === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-[var(--surface)] border border-[var(--border)] rounded-3xl text-center p-6 space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-base text-[var(--text-primary)]">No AI practice questions found</h3>
+                  <p className="text-xs text-[var(--text-muted)] max-w-md font-semibold leading-relaxed">
+                    {aiQuestionsList.length === 0 
+                      ? 'Visit the AI Tutor workspace, select any question, click "Generate Set" to compile custom practice questions!'
+                      : 'No generated questions match your active filter settings. Try relaxing your filters or search query!'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push("/ai-tutor")}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-md"
+                >
+                  Go to AI Tutor Workspace
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Array.from(groupedAIQuestions.entries()).map(([sectionName, subjectsMap], sectionIdx) => {
+                  const sectionQs: any[] = [];
+                  subjectsMap.forEach(topicsMap => {
+                    topicsMap.forEach(qs => sectionQs.push(...qs));
+                  });
+
+                  const isAllSectionSelected = sectionQs.every(q => selectedQIds.has(q.question_id));
+                  const isSomeSectionSelected = sectionQs.some(q => selectedQIds.has(q.question_id)) && !isAllSectionSelected;
+
+                  return (
+                    <motion.div
+                      key={sectionName}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(sectionIdx * 0.06, 0.3) }}
+                      className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm space-y-4"
+                    >
+                      <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-3 bg-[var(--surface-secondary)]/10 px-3 py-2 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectSection(sectionName, sectionQs)}
+                            className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition ${
+                              isAllSectionSelected 
+                                ? "bg-indigo-600 border-indigo-600 text-white" 
+                                : isSomeSectionSelected 
+                                  ? "bg-indigo-600/30 border-indigo-600 text-indigo-600" 
+                                  : "border-[var(--border-strong)] hover:bg-[var(--surface-secondary)] bg-[var(--surface)]"
+                            }`}
+                          >
+                            {isAllSectionSelected && <span className="text-[10px] font-black leading-none">✓</span>}
+                            {isSomeSectionSelected && <span className="text-[10px] font-black leading-none">-</span>}
+                          </button>
+                          <h2 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider">{sectionName}</h2>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] text-[var(--text-muted)] font-black rounded-lg">
+                          {sectionQs.length} Questions
+                        </span>
+                      </div>
+
+                      <div className="space-y-4 pl-4 border-l border-[var(--border-subtle)]/60">
+                        {Array.from(subjectsMap.entries()).map(([subjectName, topicsMap]) => {
+                          const subjectQs: any[] = [];
+                          topicsMap.forEach(qs => subjectQs.push(...qs));
+
+                          const isAllSubjectSelected = subjectQs.every(q => selectedQIds.has(q.question_id));
+                          const isSomeSubjectSelected = subjectQs.some(q => selectedQIds.has(q.question_id)) && !isAllSubjectSelected;
+
+                          return (
+                            <div key={subjectName} className="space-y-3">
+                              <div className="flex justify-between items-center bg-[var(--surface-secondary)]/30 border border-[var(--border-subtle)]/40 p-3 rounded-xl">
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSelectSubject(subjectName, subjectQs)}
+                                    className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition ${
+                                      isAllSubjectSelected 
+                                        ? "bg-indigo-600 border-indigo-600 text-white" 
+                                        : isSomeSubjectSelected 
+                                          ? "bg-indigo-600/30 border-indigo-600 text-indigo-600" 
+                                          : "border-[var(--border-strong)] hover:bg-[var(--surface-secondary)] bg-[var(--surface)]"
+                                    }`}
+                                  >
+                                    {isAllSubjectSelected && <span className="text-[10px] font-black leading-none">✓</span>}
+                                    {isSomeSubjectSelected && <span className="text-[10px] font-black leading-none">-</span>}
+                                  </button>
+                                  <h3 className="text-xs font-extrabold text-[var(--text-primary)]">{subjectName}</h3>
+                                </div>
+                                <span className="text-[9px] px-2 py-0.5 bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] font-bold rounded">
+                                  {subjectQs.length} Qs
+                                </span>
+                              </div>
+
+                              <div className="space-y-3 pl-4 border-l border-[var(--border-subtle)]/40">
+                                {Array.from(topicsMap.entries()).map(([topicName, questionsList]) => {
+                                  const isAllTopicSelected = questionsList.every(q => selectedQIds.has(q.question_id));
+                                  const isSomeTopicSelected = questionsList.some(q => selectedQIds.has(q.question_id)) && !isAllTopicSelected;
+                                  const groupKey = `${sectionName}_${subjectName}_${topicName}`;
+                                  const isGroupCollapsed = expandedGroups[groupKey] === false;
+
+                                  return (
+                                    <div key={topicName} className="border border-[var(--border-subtle)]/30 rounded-xl overflow-hidden">
+                                      <div className="flex justify-between items-center bg-[var(--surface-secondary)]/10 p-2.5 border-b border-[var(--border-subtle)]/20">
+                                        <div className="flex items-center gap-2.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleSelectTopic(topicName, questionsList)}
+                                            className={`w-3.5 h-3.5 rounded border flex items-center justify-center cursor-pointer transition ${
+                                              isAllTopicSelected 
+                                                ? "bg-indigo-600 border-indigo-600 text-white" 
+                                                : isSomeTopicSelected 
+                                                  ? "bg-indigo-600/30 border-indigo-600 text-indigo-600" 
+                                                  : "border-[var(--border-strong)] hover:bg-[var(--surface-secondary)] bg-[var(--surface)]"
+                                            }`}
+                                          >
+                                            {isAllTopicSelected && <span className="text-[9px] font-black leading-none">✓</span>}
+                                            {isSomeTopicSelected && <span className="text-[9px] font-black leading-none">-</span>}
+                                          </button>
+                                          <span className="text-[11px] font-bold text-[var(--text-secondary)]">{topicName}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[9px] text-[var(--text-muted)] font-bold">{questionsList.length} items</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedGroups(prev => ({ ...prev, [groupKey]: !isGroupCollapsed }))}
+                                            className="p-1 hover:bg-[var(--surface-secondary)] rounded cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+                                          >
+                                            {isGroupCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {!isGroupCollapsed && (
+                                        <div className="divide-y divide-[var(--border-subtle)]/20">
+                                          {questionsList.map((q) => {
+                                            const isSelected = selectedQIds.has(q.question_id);
+                                            const isQExpanded = expandedSetupQId === q.question_id;
+
+                                            return (
+                                              <div key={q.question_id} className="p-3 bg-[var(--surface)] hover:bg-[var(--surface-secondary)]/10 transition-colors">
+                                                <div className="flex items-center justify-between gap-3">
+                                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => toggleSelectQuestion(q.question_id)}
+                                                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center cursor-pointer transition ${
+                                                        isSelected 
+                                                          ? "bg-indigo-600 border-indigo-600 text-white" 
+                                                          : "border-[var(--border-strong)] bg-[var(--surface)]"
+                                                      }`}
+                                                    >
+                                                      {isSelected && <span className="text-[9px] font-black leading-none">✓</span>}
+                                                    </button>
+                                                    
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setExpandedSetupQId(isQExpanded ? null : q.question_id)}
+                                                      className="flex-1 text-left flex items-center justify-between min-w-0 group cursor-pointer"
+                                                    >
+                                                      <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                          <span className="text-[9px] font-black text-indigo-500 uppercase font-mono tracking-wider">Q{q.question_no}</span>
+                                                          <span className="text-[9px] px-1.5 py-0.5 bg-[var(--surface-secondary)] text-[var(--text-muted)] font-black uppercase rounded-md">{q.question_type}</span>
+                                                          <span className={`text-[9px] px-1.5 py-0.5 font-bold uppercase rounded-md ${
+                                                            q.difficulty === "Hard" 
+                                                              ? "bg-rose-500/10 text-rose-500" 
+                                                              : q.difficulty === "Moderate" 
+                                                                ? "bg-amber-500/10 text-amber-500" 
+                                                                : "bg-emerald-500/10 text-emerald-500"
+                                                          }`}>{q.difficulty}</span>
+                                                          <span className="text-[9px] text-[var(--text-muted)] font-bold">{q.marks} Mark{q.marks !== 1 && "s"}</span>
+                                                        </div>
+                                                        <p className="text-xs font-semibold text-[var(--text-secondary)] mt-1 truncate leading-relaxed group-hover:text-[var(--text-primary)] transition-colors">
+                                                          {q.questionTextRaw}
+                                                        </p>
+                                                      </div>
+                                                      <span className="text-[var(--text-muted)] ml-2 shrink-0 group-hover:text-[var(--text-primary)] transition-colors">
+                                                        {isQExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                                      </span>
+                                                    </button>
+                                                  </div>
+                                                </div>
+
+                                                <AnimatePresence initial={false}>
+                                                {isQExpanded && (
+                                                  <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: "auto", opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="overflow-hidden"
+                                                  >
+                                                  <div className="mt-3.5 pl-6 border-l-2 border-indigo-500 space-y-4 text-xs font-medium text-[var(--text-secondary)]">
+                                                    <div className="p-3.5 bg-[var(--surface-secondary)]/30 border border-[var(--border-subtle)] rounded-xl leading-relaxed whitespace-pre-wrap">
+                                                      <AstNodeRenderer nodes={q.contentAst || []} />
+                                                    </div>
+
+                                                    {q.options && q.options.length > 0 && (
+                                                      <div className="space-y-2">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block">Option List</span>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                          {q.options.map((opt: any) => {
+                                                            const isOptCorrect = !!opt.is_correct;
+                                                            return (
+                                                              <div 
+                                                                key={opt.option_id}
+                                                                className={`p-3 border rounded-xl flex items-start gap-2.5 ${
+                                                                  isOptCorrect 
+                                                                    ? "bg-green-500/5 border-green-500/20 text-green-700 dark:text-green-400 font-bold" 
+                                                                    : "bg-[var(--surface-secondary)]/20 border-[var(--border-subtle)]/40 text-[var(--text-secondary)]"
+                                                                }`}
+                                                              >
+                                                                <span className="font-extrabold shrink-0">{opt.option_id}.</span>
+                                                                <div className="flex-1 overflow-hidden">
+                                                                  <AstNodeRenderer nodes={opt.contentAst || []} />
+                                                                </div>
+                                                              </div>
+                                                            );
+                                                          })}
+                                                        </div>
+                                                      </div>
+                                                    )}
+
+                                                    {q.nat_answer_range && (
+                                                      <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl text-green-700 dark:text-green-400 font-bold flex justify-between max-w-sm">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">Correct Answer Range</span>
+                                                        <span className="font-mono">{q.nat_answer_range.min} - {q.nat_answer_range.max}</span>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  </motion.div>
+                                                )}
+                                                </AnimatePresence>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-full flex flex-col lg:flex-row gap-8">
+            <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm p-6 md:p-8">
+              <div className="mb-8 max-w-md">
+                <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
+                  Deployment Type
+                </label>
+                <CustomDropdown
                   value={examType}
                   onChange={(val) => setExamType(val as ExamType)}
                   options={[
@@ -190,199 +741,218 @@ export default function ExamSetupPage() {
                     { label: "Custom Advanced Generator", value: "CUSTOM_TEST" }
                   ]}
                   className="w-full text-sm font-medium"
-              />
-            </div>
-
-            {examType === "CUSTOM_TEST" ? (
-              <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
-                 <CustomTestBuilder onGenerate={(config) => {
-                    const start = performance.now();
-                    createDraft(config);
-                    setGenerationTimeMs(performance.now() - start);
-                 }} />
+                />
               </div>
-            ) : (
-              <div className="space-y-6">
 
-                {examType === "YEAR_PAPER" && (
-                  <div className="max-w-md">
-                    <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Year & Shift</label>
-                    <div className="relative">
-                      <CustomDropdown
-                        value={selectedPaper}
-                        onChange={(v) => setSelectedPaper(v)}
-                        options={availablePapers.map((p) => ({ label: p, value: p }))}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {examType === "SECTION_TEST" && (
-                  <div className="max-w-md">
-                    <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Section</label>
-                    <div className="relative">
-                      <CustomDropdown
-                        value={selectedSection}
-                        onChange={(v) => setSelectedSection(v)}
-                        options={availableSections.map((s) => ({ label: s, value: s }))}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {(examType === "SUBJECT_TEST" || examType === "TOPIC_TEST") && (
-                  <div className="max-w-md">
-                    <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Subject</label>
-                    <div className="relative">
-                      <CustomDropdown
-                        value={selectedSubject}
-                        onChange={(v) => setSelectedSubject(v)}
-                        options={availableSubjects.map((s) => ({ label: s, value: s }))}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {examType === "TOPIC_TEST" && (
-                  <div className="max-w-md mt-6">
-                    <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Topic</label>
-                    <div className="relative">
-                      <CustomDropdown
-                        value={selectedTopic}
-                        onChange={(v) => setSelectedTopic(v)}
-                        options={availableTopics.map((t) => ({ label: t, value: t }))}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {examType !== "YEAR_PAPER" && (
-                  <div className="max-w-md">
-                    <label className="flex justify-between text-sm font-bold text-[var(--text-secondary)] mb-2">
-                      <span>Volume (Questions)</span>
-                      <span className="text-[var(--text-muted)] font-medium">Available: {maxAvailable}</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="5"
-                      max={maxAvailable > 0 ? maxAvailable : 100}
-                      value={questionCount}
-                      onChange={(e) => {
-                        let val = parseInt(e.target.value) || 10;
-                        if (maxAvailable > 0 && val > maxAvailable) val = maxAvailable;
-                        setQuestionCount(val);
-                      }}
-                      className="w-full px-4 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                    />
-                  </div>
-                )}
-
-                <div className="pt-6">
-                  <button
-                    onClick={handleGenerate}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold tracking-wide shadow-md transition-all flex items-center justify-center gap-2 group"
-                  >
-                    <Target className="w-5 h-5 group-hover:scale-110 transition-transform" /> Generate Blueprint
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Preview/Draft status */}
-        <div className="w-full lg:w-[420px] shrink-0">
-           <div className={`sticky top-24 bg-[var(--surface)] border ${currentDraft ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-[var(--border)]'} rounded-3xl p-6 shadow-sm overflow-hidden transition-colors`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className={`p-2 rounded-lg ${currentDraft ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
-                   <FileText className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-lg text-[var(--text-primary)]">Generated Blueprint</h3>
-              </div>
-              
-              {currentDraft && draftStats ? (
-                <div className="space-y-6">
-                  
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                     <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
-                        <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Questions</span>
-                        <div className="text-3xl font-extrabold text-[var(--text-primary)]">{currentDraft.questions.length}</div>
-                     </div>
-                     <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
-                        <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Marks</span>
-                        <div className="text-3xl font-extrabold text-[var(--text-primary)]">{draftStats.totalMarks}</div>
-                     </div>
-                  </div>
-
-                  <div className="space-y-3">
-                     <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
-                       <span className="font-medium text-[var(--text-secondary)]">Sections</span>
-                       <span className="font-bold text-[var(--text-primary)]">{draftStats.sections}</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
-                       <span className="font-medium text-[var(--text-secondary)]">Subjects</span>
-                       <span className="font-bold text-[var(--text-primary)]">{draftStats.subjects}</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
-                       <span className="font-medium text-[var(--text-secondary)]">Topics</span>
-                       <span className="font-bold text-[var(--text-primary)]">{draftStats.topics}</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
-                       <span className="font-medium text-[var(--text-secondary)]">Question Types</span>
-                       <span className="font-bold text-[var(--text-primary)]">
-                         MCQ: {draftStats.types['MCQ'] || 0} • MSQ: {draftStats.types['MSQ'] || 0} • NAT: {draftStats.types['NAT'] || 0}
-                       </span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
-                       <span className="font-medium text-[var(--text-secondary)]">Est. Duration</span>
-                       <span className="font-bold text-[var(--text-primary)]">{draftStats.estimatedMinutes} mins</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm pt-1">
-                       <span className="font-medium text-[var(--text-secondary)]">Draft ID</span>
-                       <span className="font-mono text-xs text-[var(--text-muted)] truncate max-w-[150px]">{currentDraft.id}</span>
-                     </div>
-                  </div>
-
-                  {/* Difficulty Bar */}
-                  <div className="pt-2">
-                     <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">Difficulty Split</span>
-                     <div className="flex h-3 rounded-full overflow-hidden w-full gap-0.5">
-                        {['Hard', 'Medium', 'Easy'].map(d => {
-                           const count = draftStats.diffs[d] || 0;
-                           if(count===0) return null;
-                           const percent = (count/currentDraft.questions.length)*100;
-                           const color = d === 'Hard' ? 'bg-rose-500' : d === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400';
-                           return <div key={d} style={{width: `${percent}%`}} className={color} title={`${d}: ${count}`} />
-                        })}
-                     </div>
-                     <div className="flex justify-between text-[10px] uppercase font-bold text-[var(--text-muted)] mt-2">
-                        <span>{draftStats.diffs['Easy']||0} Easy</span>
-                        <span>{draftStats.diffs['Medium']||0} Med</span>
-                        <span>{draftStats.diffs['Hard']||0} Hard</span>
-                     </div>
-                  </div>
-
-                  <button
-                    onClick={async () => {
-                      await useExamRuntimeStore.getState().startSession(currentDraft);
-                      router.push("/exam/session");
-                    }}
-                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black tracking-wider uppercase shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
-                  >
-                    Deploy Session <Play className="w-5 h-5 fill-current" />
-                  </button>
-                  
+              {examType === "CUSTOM_TEST" ? (
+                <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
+                   <CustomTestBuilder onGenerate={(config) => {
+                      const start = performance.now();
+                      createDraft(config);
+                      setGenerationTimeMs(performance.now() - start);
+                   }} />
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--surface-secondary)]\/50 p-6">
-                   <ServerCog className="w-10 h-10 text-gray-300 dark:text-gray-700 mb-3" />
-                   <h4 className="font-bold text-[var(--text-primary)] text-sm mb-1">Awaiting Configuration</h4>
-                   <p className="text-xs font-medium text-[var(--text-muted)]">Set your parameters and hit Generate to compile the test.</p>
+                <div className="space-y-6">
+
+                  {examType === "YEAR_PAPER" && (
+                    <div className="max-w-md">
+                      <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Year & Shift</label>
+                      <div className="relative">
+                        <CustomDropdown
+                          value={selectedPaper}
+                          onChange={(v) => setSelectedPaper(v)}
+                          options={availablePapers.map((p) => ({ label: p, value: p }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {examType === "SECTION_TEST" && (
+                    <div className="max-w-md">
+                      <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Section</label>
+                      <div className="relative">
+                        <CustomDropdown
+                          value={selectedSection}
+                          onChange={(v) => setSelectedSection(v)}
+                          options={availableSections.map((s) => ({ label: s, value: s }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(examType === "SUBJECT_TEST" || examType === "TOPIC_TEST") && (
+                    <div className="max-w-md">
+                      <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Subject</label>
+                      <div className="relative">
+                        <CustomDropdown
+                          value={selectedSubject}
+                          onChange={(v) => setSelectedSubject(v)}
+                          options={availableSubjects.map((s) => ({ label: s, value: s }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {examType === "TOPIC_TEST" && (
+                    <div className="max-w-md mt-6">
+                      <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Topic</label>
+                      <div className="relative">
+                        <CustomDropdown
+                          value={selectedTopic}
+                          onChange={(v) => setSelectedTopic(v)}
+                          options={availableTopics.map((t) => ({ label: t, value: t }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {examType !== "YEAR_PAPER" && (
+                    <div className="max-w-md">
+                      <label className="flex justify-between text-sm font-bold text-[var(--text-secondary)] mb-2">
+                        <span>Volume (Questions)</span>
+                        <span className="text-[var(--text-muted)] font-medium">Available: {maxAvailable}</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="5"
+                        max={maxAvailable > 0 ? maxAvailable : 100}
+                        value={questionCount}
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value) || 10;
+                          if (maxAvailable > 0 && val > maxAvailable) val = maxAvailable;
+                          setQuestionCount(val);
+                        }}
+                        className="w-full px-4 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-6">
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={handleGenerate}
+                      className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold tracking-wide shadow-md transition-all flex items-center justify-center gap-2 group cursor-pointer border-0"
+                    >
+                      <Target className="w-5 h-5 group-hover:scale-110 transition-transform" /> Generate Blueprint
+                    </motion.button>
+                  </div>
                 </div>
               )}
-           </div>
-        </div>
+            </div>
+
+            <div className="w-full lg:w-[420px] shrink-0">
+               <motion.div
+                 layout
+                 className={`sticky top-24 bg-[var(--surface)] border ${currentDraft ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-[var(--border)]'} rounded-3xl p-6 shadow-sm overflow-hidden transition-colors`}
+               >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className={`p-2 rounded-lg ${currentDraft ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
+                       <FileText className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-bold text-lg text-[var(--text-primary)]">Generated Blueprint</h3>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                  {currentDraft && draftStats ? (
+                    <motion.div
+                      key="stats"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-6"
+                    >
+
+                      <div className="grid grid-cols-2 gap-3">
+                         <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
+                            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Questions</span>
+                            <div className="text-3xl font-extrabold text-[var(--text-primary)]">{currentDraft.questions.length}</div>
+                         </div>
+                         <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
+                            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Marks</span>
+                            <div className="text-3xl font-extrabold text-[var(--text-primary)]">{draftStats.totalMarks}</div>
+                         </div>
+                      </div>
+
+                      <div className="space-y-3">
+                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
+                           <span className="font-medium text-[var(--text-secondary)]">Sections</span>
+                           <span className="font-bold text-[var(--text-primary)]">{draftStats.sections}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
+                           <span className="font-medium text-[var(--text-secondary)]">Subjects</span>
+                           <span className="font-bold text-[var(--text-primary)]">{draftStats.subjects}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
+                           <span className="font-medium text-[var(--text-secondary)]">Topics</span>
+                           <span className="font-bold text-[var(--text-primary)]">{draftStats.topics}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
+                           <span className="font-medium text-[var(--text-secondary)]">Question Types</span>
+                           <span className="font-bold text-[var(--text-primary)]">
+                             MCQ: {draftStats.types['MCQ'] || 0} • MSQ: {draftStats.types['MSQ'] || 0} • NAT: {draftStats.types['NAT'] || 0}
+                           </span>
+                         </div>
+                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
+                           <span className="font-medium text-[var(--text-secondary)]">Est. Duration</span>
+                           <span className="font-bold text-[var(--text-primary)]">{draftStats.estimatedMinutes} mins</span>
+                         </div>
+                         <div className="flex justify-between items-center text-sm pt-1">
+                           <span className="font-medium text-[var(--text-secondary)]">Draft ID</span>
+                           <span className="font-mono text-xs text-[var(--text-muted)] truncate max-w-[150px]">{currentDraft.id}</span>
+                         </div>
+                      </div>
+
+                      <div className="pt-2">
+                         <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">Difficulty Split</span>
+                         <div className="flex h-3 rounded-full overflow-hidden w-full gap-0.5">
+                            {['Hard', 'Medium', 'Easy'].map(d => {
+                               const count = draftStats.diffs[d] || 0;
+                               if(count===0) return null;
+                               const percent = (count/currentDraft.questions.length)*100;
+                               const color = d === 'Hard' ? 'bg-rose-500' : d === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400';
+                               return <div key={d} style={{width: `${percent}%`}} className={color} title={`${d}: ${count}`} />
+                            })}
+                         </div>
+                         <div className="flex justify-between text-[10px] uppercase font-bold text-[var(--text-muted)] mt-2">
+                            <span>{draftStats.diffs['Easy']||0} Easy</span>
+                            <span>{draftStats.diffs['Medium']||0} Med</span>
+                            <span>{draftStats.diffs['Hard']||0} Hard</span>
+                         </div>
+                      </div>
+
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={async () => {
+                          await useExamRuntimeStore.getState().startSession(currentDraft);
+                          router.push("/exam/session");
+                        }}
+                        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black tracking-wider uppercase shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
+                      >
+                        Deploy Session <Play className="w-5 h-5 fill-current" />
+                      </motion.button>
+
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--surface-secondary)]/50 p-6"
+                    >
+                       <ServerCog className="w-10 h-10 text-gray-300 dark:text-gray-700 mb-3" />
+                       <h4 className="font-bold text-[var(--text-primary)] text-sm mb-1">Awaiting Configuration</h4>
+                       <p className="text-xs font-medium text-[var(--text-muted)]">Set your parameters and hit Generate to compile the test.</p>
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
+               </motion.div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

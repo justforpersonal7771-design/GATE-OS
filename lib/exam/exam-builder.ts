@@ -12,7 +12,7 @@ export class ExamBuilder {
       case "YEAR_PAPER":
         if (!config.yearShift)
           throw new Error("yearShift is required for YEAR_PAPER");
-        questions = this.buildYearPaper(config.yearShift, seed);
+        questions = this.buildYearPaper(config.yearShift, seed, config.isAiGenerated);
         break;
       case "SUBJECT_TEST":
         if (!config.subject)
@@ -21,6 +21,7 @@ export class ExamBuilder {
           config.subject,
           config.questionCount || 20,
           seed,
+          config.isAiGenerated
         );
         break;
       case "TOPIC_TEST":
@@ -31,6 +32,7 @@ export class ExamBuilder {
           config.topics[0],
           config.questionCount || 10,
           seed,
+          config.isAiGenerated
         );
         break;
       case "SECTION_TEST":
@@ -40,6 +42,7 @@ export class ExamBuilder {
           config.section,
           config.questionCount || 20,
           seed,
+          config.isAiGenerated
         );
         break;
       case "CUSTOM_TEST":
@@ -63,9 +66,11 @@ export class ExamBuilder {
   public static buildYearPaper(
     yearShift: string,
     seed?: number,
+    isAi?: boolean,
   ): ExamQuestion[] {
     const repo = QuestionRepository;
-    const questions = repo.getPaper(yearShift);
+    let questions = repo.getPaper(yearShift);
+    questions = questions.filter(q => isAi ? (q as any).isAiGenerated : !(q as any).isAiGenerated);
     // Year papers are usually presented in sequence, but we can shuffle if a specific seed strategy is defined
     return this.takeRandom(questions, questions.length, seed, false);
   }
@@ -74,9 +79,11 @@ export class ExamBuilder {
     subject: string,
     count: number,
     seed?: number,
+    isAi?: boolean,
   ): ExamQuestion[] {
     const repo = QuestionRepository;
-    const questions = repo.getSubjectBank(subject);
+    let questions = repo.getSubjectBank(subject);
+    questions = questions.filter(q => isAi ? (q as any).isAiGenerated : !(q as any).isAiGenerated);
     return this.takeRandom(questions, count, seed, true);
   }
 
@@ -84,9 +91,11 @@ export class ExamBuilder {
     section: string,
     count: number,
     seed?: number,
+    isAi?: boolean,
   ): ExamQuestion[] {
     const repo = QuestionRepository;
-    const questions = repo.getQuestionsBySection(section);
+    let questions = repo.getQuestionsBySection(section);
+    questions = questions.filter(q => isAi ? (q as any).isAiGenerated : !(q as any).isAiGenerated);
     return this.takeRandom(questions, count, seed, true);
   }
 
@@ -94,9 +103,11 @@ export class ExamBuilder {
     topic: string,
     count: number,
     seed?: number,
+    isAi?: boolean,
   ): ExamQuestion[] {
     const repo = QuestionRepository;
-    const questions = repo.getQuestionsByTopic(topic);
+    let questions = repo.getQuestionsByTopic(topic);
+    questions = questions.filter(q => isAi ? (q as any).isAiGenerated : !(q as any).isAiGenerated);
     return this.takeRandom(questions, count, seed, true);
   }
 
@@ -152,6 +163,8 @@ export class ExamBuilder {
     } else {
       pool = repo.getAllQuestions();
     }
+
+    pool = pool.filter(q => config.isAiGenerated ? (q as any).isAiGenerated : !(q as any).isAiGenerated);
 
     // Apply strict filtering
     if (config.topics && config.topics.length > 0) {

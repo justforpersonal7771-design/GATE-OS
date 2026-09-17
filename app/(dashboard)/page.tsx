@@ -8,49 +8,45 @@ import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { useStudyStore } from "@/store/use-study-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import dynamic from "next/dynamic";
-import { 
+import { motion, AnimatePresence } from "motion/react";
+import {
   Target, Clock, Flame, Loader2, TrendingUp
 } from "lucide-react";
 
 // Dynamic imports with Skeleton Loading placeholders to guarantee performance (Part 12)
 const HeroSection = dynamic(() => import("@/components/dashboard/hero-section").then(m => m.HeroSection), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-64 rounded-3xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-3xl" />
 });
 
 const QuickActions = dynamic(() => import("@/components/dashboard/quick-actions").then(m => m.QuickActions), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-32 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-32 rounded-2xl" />
 });
 
 const ProgressVisualizer = dynamic(() => import("@/components/dashboard/progress-visualizer").then(m => m.ProgressVisualizer), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-64 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-2xl" />
 });
 
 const FocusCenter = dynamic(() => import("@/components/dashboard/focus-center").then(m => m.FocusCenter), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-48 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-48 rounded-2xl" />
 });
 
 const GithubHeatmap = dynamic(() => import("@/components/dashboard/github-heatmap").then(m => m.GithubHeatmap), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-32 rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-32 rounded-2xl" />
 });
 
 const ActivityTimeline = dynamic(() => import("@/components/dashboard/activity-timeline").then(m => m.ActivityTimeline), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[400px] rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-[400px] rounded-2xl" />
 });
 
 const RecentExams = dynamic(() => import("@/components/dashboard/recent-exams").then(m => m.RecentExams), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[380px] rounded-2xl" />
-});
-
-const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
-  ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[520px] rounded-2xl" />
+  loading: () => <div className="skeleton-shimmer h-[380px] rounded-2xl" />
 });
 
 export default function Home() {
@@ -94,13 +90,12 @@ export default function Home() {
     router.push("/setup");
   };
 
-  const handleRetryExam = async (session: any) => {
-    const { startSession } = useExamRuntimeStore.getState();
-    await startSession({
-      ...session.draftConfig,
-      id: crypto.randomUUID()
-    });
-    router.push("/exam/session");
+  // Past sessions only retain a lightweight summary (id/status/score), not the
+  // original ExamSessionDraft, so "practicing again" can't silently replay the
+  // exact same paper — send the student to Setup to configure a fresh one
+  // instead of spreading a nonexistent draftConfig into a broken session.
+  const handleRetryExam = () => {
+    router.push("/setup");
   };
 
   if (!isInitialized || (loading && !dashboardMetrics)) {
@@ -130,8 +125,14 @@ export default function Home() {
       />
 
       {/* 2. Active Session Banner Alert */}
+      <AnimatePresence>
       {isHydrated && activeSession && activeSession.status !== "SUBMITTED" && (
-        <div className="p-5 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur shadow-sm relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="p-5 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
           <div className="flex gap-4 items-center relative z-10">
             <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
@@ -160,50 +161,71 @@ export default function Home() {
               Discard
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* 3. Premium Analytics Metrics Row Grid (Part 7) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Metric accuracy */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Practice Accuracy</span>
              <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{accuracyValue.toFixed(1)}%</div>
-        </div>
+        </motion.div>
 
         {/* Metric Solved */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Questions Solved</span>
              <Target className="w-4 h-4 text-indigo-500" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{solvedCount}</div>
-        </div>
+        </motion.div>
 
         {/* Metric Hours */}
-        <div className="bg-[var(--surface)] border border(--border) p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Study Hours</span>
              <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{studyHours} hrs</div>
-        </div>
+        </motion.div>
 
         {/* Metric Streak */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Active Streak</span>
              <Flame className="w-4 h-4 text-rose-500 fill-rose-500 stroke-none" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{streakDays} days</div>
-        </div>
+        </motion.div>
       </div>
 
       {/* 4. Main Two-Column Content Grid */}
@@ -232,9 +254,6 @@ export default function Home() {
             hasActiveSession={!!activeSession && activeSession.status !== "SUBMITTED"}
             onContinueSession={handleResume}
           />
-
-          {/* Study Planner Monthly Calendar */}
-          <StudyPlanner />
         </div>
 
         {/* Right Side (Spans 4 columns) */}

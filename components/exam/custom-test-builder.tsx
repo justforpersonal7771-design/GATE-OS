@@ -37,25 +37,54 @@ export function CustomTestBuilder({ onGenerate }: CustomTestBuilderProps) {
   };
 
   const addBlock = () => {
+    const available = calculateAvailableCount({});
     setBlocks([
       ...blocks,
       {
         id: crypto.randomUUID(),
-        count: 10,
+        count: available,
+        includeAll: true,
       },
     ]);
   };
 
+  // Filter changes (year/section/subject/topic) always keep an "include all"
+  // block synced to its full matching pool. Only an explicit count edit
+  // (handleCountChange) switches a block to a manual, fixed count.
   const updateBlock = (id: string, updates: Partial<CustomTestBlock>) => {
     setBlocks(
       blocks.map((b) => {
         if (b.id === id) {
           const updated = { ...b, ...updates };
           const available = calculateAvailableCount(updated);
-          if (updated.count > available) updated.count = available;
+          if (updated.includeAll !== false) {
+            updated.count = available;
+          } else if (updated.count > available) {
+            updated.count = available;
+          }
           return updated;
         }
         return b;
+      })
+    );
+  };
+
+  const handleCountChange = (id: string, value: number) => {
+    setBlocks(
+      blocks.map((b) => {
+        if (b.id !== id) return b;
+        const available = calculateAvailableCount(b);
+        const clamped = Math.max(1, Math.min(value, available > 0 ? available : value));
+        return { ...b, count: clamped, includeAll: false };
+      })
+    );
+  };
+
+  const handleResetToAll = (id: string) => {
+    setBlocks(
+      blocks.map((b) => {
+        if (b.id !== id) return b;
+        return { ...b, count: calculateAvailableCount(b), includeAll: true };
       })
     );
   };
@@ -251,8 +280,20 @@ export function CustomTestBuilder({ onGenerate }: CustomTestBuilderProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
-                    Count (Max: {available})
+                  <label className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] mb-1">
+                    <span>Count</span>
+                    {block.includeAll === false ? (
+                      <button
+                        type="button"
+                        onClick={() => handleResetToAll(block.id)}
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
+                        title="Reset to include all matching questions"
+                      >
+                        Use all ({available})
+                      </button>
+                    ) : (
+                      <span className="text-[var(--text-muted)]">All matching</span>
+                    )}
                   </label>
                   <input
                     type="number"
@@ -260,9 +301,8 @@ export function CustomTestBuilder({ onGenerate }: CustomTestBuilderProps) {
                     max={available > 0 ? available : 100}
                     value={block.count}
                     onChange={(e) => {
-                      let val = parseInt(e.target.value) || 1;
-                      if (available > 0 && val > available) val = available;
-                      updateBlock(block.id, { count: val });
+                      const val = parseInt(e.target.value) || 1;
+                      handleCountChange(block.id, val);
                     }}
                     className="w-full p-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-md"
                   />

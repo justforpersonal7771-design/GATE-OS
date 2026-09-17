@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, Suspense } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStudyStore } from "@/store/use-study-store";
 import { useAnalyticsStore } from "@/store/use-analytics-store";
@@ -8,7 +9,7 @@ import { QuestionRepository } from "@/lib/repository/question-repository";
 import { RenderableQuestion } from "@/types/question.types";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { MathJaxContext } from "better-react-mathjax";
-import { Loader2, ArrowLeft, ArrowRight, ChevronLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, ChevronLeft, Sparkles } from "lucide-react";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { FullscreenNavigation } from "@/components/ui/fullscreen-navigation";
 
@@ -17,12 +18,16 @@ function RevisionSessionContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") || "mistakes";
   
-  const { mistakes, bookmarks, markMistakeMastered } = useStudyStore();
+  const { mistakes, bookmarks, markMistakeMastered, loadStudyData } = useStudyStore();
   const { dashboardMetrics } = useAnalyticsStore();
-  
+
   const [questions, setQuestions] = useState<RenderableQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStudyData();
+  }, [loadStudyData]);
 
   useEffect(() => {
     let qIds: string[] = [];
@@ -94,8 +99,18 @@ function RevisionSessionContent() {
              </button>
              <h1 className="font-bold text-[var(--text-primary)] capitalize">Revision: {mode.replace("_", " ")}</h1>
           </div>
-          <div className="font-semibold text-[var(--text-muted)]">
-            {currentIndex + 1} / {questions.length}
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={() => router.push(`/ai-tutor?qid=${currentQuestion.question_id}`)}
+              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer flex items-center justify-center shrink-0"
+              title="Explain with AI Tutor"
+            >
+              <Sparkles className="w-4 h-4" />
+            </motion.button>
+            <div className="font-semibold text-[var(--text-muted)]">
+              {currentIndex + 1} / {questions.length}
+            </div>
           </div>
         </div>
 
@@ -113,11 +128,20 @@ function RevisionSessionContent() {
             />
 
             {/* Question Text (Scrollable) */}
-            <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-12 custom-scrollbar pt-12 sm:pt-14">
+            <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuestion.question_id}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 overflow-y-auto px-6 py-8 sm:px-12 custom-scrollbar pt-12 sm:pt-14"
+            >
               <div className="text-lg md:text-xl font-medium leading-relaxed text-[var(--text-primary)] mb-8">
                  <AstNodeRenderer nodes={currentQuestion.contentAst} />
               </div>
-            </div>
+            </motion.div>
+            </AnimatePresence>
 
             {/* Options or NAT Answer Highlight Area */}
             <div className="flex-none p-6 border-t border-[var(--border-subtle)] bg-[var(--surface-secondary)] shadow-[0_-4px_10px_-2px_rgba(0,0,0,0.02)] z-10 w-full">
@@ -171,16 +195,18 @@ function RevisionSessionContent() {
         </div>
 
         <div className="bg-[var(--surface)] border-t border-[var(--border)] p-4 shrink-0 flex justify-between items-center z-20">
-          <button 
+          <motion.button
+            whileTap={{ scale: 0.96 }}
             disabled={currentIndex === 0}
             onClick={() => setCurrentIndex(i => i - 1)}
             className="flex items-center gap-2 px-6 py-2.5 bg-[var(--surface-secondary)] border border-[var(--border)] hover:bg-[var(--surface-elevated)] text-[var(--text-primary)] font-bold rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
              <ArrowLeft className="w-4 h-4" /> Prev
-          </button>
-          
+          </motion.button>
+
           {mode === "mistakes" && (
-            <button 
+            <motion.button
+              whileTap={{ scale: 0.96 }}
               onClick={() => {
                 markMistakeMastered(currentQuestion.question_id);
                 if (currentIndex < questions.length - 1) {
@@ -190,16 +216,17 @@ function RevisionSessionContent() {
               className="px-6 py-2.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 font-bold rounded-lg transition cursor-pointer"
             >
                Mark Mastered
-            </button>
+            </motion.button>
           )}
 
-          <button 
+          <motion.button
+            whileTap={{ scale: 0.96 }}
             disabled={currentIndex === questions.length - 1}
             onClick={() => setCurrentIndex(i => i + 1)}
             className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
              Next <ArrowRight className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       </div>
     </MathJaxContext>

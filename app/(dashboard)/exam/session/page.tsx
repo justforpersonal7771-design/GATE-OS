@@ -17,7 +17,7 @@ import { ExamSubmitDialog } from "@/components/exam/exam-submit-dialog";
 import { ImagePrefetcher } from "@/lib/exam/image-prefetcher";
 import { useTheme } from "next-themes";
 import { SectionTabs } from "@/components/exam/section-tabs";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function ExamSessionPage() {
   const router = useRouter();
@@ -42,7 +42,6 @@ export default function ExamSessionPage() {
   const pauseSession = useExamRuntimeStore((state) => state.pauseSession);
   const resumeSession = useExamRuntimeStore((state) => state.resumeSession);
   const submitSession = useExamRuntimeStore((state) => state.submitSession);
-  const clearSession = useExamRuntimeStore((state) => state.clearSession);
   const nextQuestion = useExamRuntimeStore((state) => state.nextQuestion);
   const previousQuestion = useExamRuntimeStore((state) => state.previousQuestion);
   const saveResponse = useExamRuntimeStore((state) => state.saveResponse);
@@ -165,10 +164,16 @@ export default function ExamSessionPage() {
             Your responses have been committed to the evaluation engine.
           </p>
           <button
-            onClick={async () => {
-               const sid = sessionId;
-               await clearSession();
-               router.push(`/exam/results?id=${sid}`);
+            onClick={() => {
+               // submitSession() already deleted the persisted "active_session"
+               // record and deliberately kept activeSession in memory to avoid
+               // this exact page flashing into its "no active session" guard
+               // clause. Do NOT null it out here before navigating away - that
+               // was causing this page to re-render into the empty state and
+               // get stuck there instead of reaching /exam/results. Just
+               // navigate; the in-memory state naturally resets on next
+               // initializeStore() call since IDB has nothing to restore.
+               router.push(`/exam/results?id=${sessionId}`);
             }}
             className="mt-6 px-10 py-4 w-full bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-black tracking-widest uppercase shadow-lg shadow-green-500/30"
           >

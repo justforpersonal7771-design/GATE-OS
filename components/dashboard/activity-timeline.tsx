@@ -1,22 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { CheckCircle2, Bookmark, AlertCircle, PlayCircle, Activity } from "lucide-react";
-
-interface RecentSession {
-  id: string;
-  config: { name?: string };
-  status: string;
-  accuracy?: number;
-  updatedAt?: number;
-  startedAt?: number;
-}
-
 import { BookmarkEntry, MistakeEntry } from "@/types/study.types";
+import { RecentSessionSummary } from "@/types/analytics.types";
 
 interface ActivityTimelineProps {
-  recentSessions: RecentSession[];
+  recentSessions: RecentSessionSummary[];
   bookmarks: BookmarkEntry[];
   mistakes: MistakeEntry[];
 }
@@ -41,7 +32,7 @@ export function ActivityTimeline({ recentSessions, bookmarks, mistakes }: Activi
         type: "exam",
         title: s.config.name || "GATE Mock Test",
         timestamp: new Date(s.updatedAt || s.startedAt || Date.now()),
-        meta: s.accuracy !== undefined ? `Accuracy: ${s.accuracy.toFixed(0)}%` : "Practice Session",
+        meta: s.status === "SUBMITTED" ? `Accuracy: ${s.accuracy.toFixed(0)}%` : "Practice Session",
         status: s.status
       });
     });

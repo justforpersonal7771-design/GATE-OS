@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Calendar, ChevronLeft, ChevronRight, Plus, Clock, Tag, Flag, 
   Play, Check, Trash2, CalendarRange, Clock3, AlertTriangle, 
   CheckSquare, BookOpen, Star, HelpCircle, AlertCircle, RefreshCw, Zap
 } from "lucide-react";
-import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { CalendarEvent } from "@/types/calendar.types";
 import { useRouter } from "next/navigation";
+import { toLocalDateStr } from "@/lib/utils";
+import { useCalendarStore } from "@/store/use-calendar-store";
 
 export function StudyPlanner() {
   const router = useRouter();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const { events, loadEvents, addEvent, updateEvent, deleteEvent } = useCalendarStore();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"month" | "week" | "day">("month");
   
@@ -23,7 +24,7 @@ export function StudyPlanner() {
     title: "",
     description: "",
     category: "Study",
-    date: new Date().toISOString().split("T")[0],
+    date: toLocalDateStr(),
     color: "#6366f1",
     priority: "Medium",
     completed: false,
@@ -46,33 +47,12 @@ export function StudyPlanner() {
 
   // Selected day state for detail preview
   const [selectedDateStr, setSelectedDateStr] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    toLocalDateStr()
   );
-
-  // Load events from IDB
-  const loadEvents = async () => {
-    const data = await IDBManager.getCalendarEvents();
-    // Migrating/mapping release 1 events that don't have new fields
-    const updatedData = data.map((e: any) => ({
-      ...e,
-      studyType: e.studyType || "Study",
-      revisionCycle: e.revisionCycle || "One Time",
-      status: e.status || (e.completed ? "Completed" : "Pending"),
-      timeRangeType: e.timeRangeType || "start_time",
-      startTime: e.startTime || e.time || "10:00"
-    }));
-    setEvents(updatedData);
-  };
 
   useEffect(() => {
     loadEvents();
-  }, []);
-
-  // Save events back to IDB
-  const saveEvents = async (updated: CalendarEvent[]) => {
-    setEvents(updated);
-    await IDBManager.saveCalendarEvents(updated);
-  };
+  }, [loadEvents]);
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +84,7 @@ export function StudyPlanner() {
       section: newEvent.section || ""
     };
 
-    const updated = [...events, event];
-    await saveEvents(updated);
+    await addEvent(event);
     setIsAddOpen(false);
     
     // Reset Form
@@ -136,37 +115,18 @@ export function StudyPlanner() {
   };
 
   const handleStatusChange = async (id: string, nextStatus: CalendarEvent["status"]) => {
-    const updated = events.map(e => {
-      if (e.id === id) {
-        return {
-          ...e,
-          status: nextStatus,
-          completed: nextStatus === "Completed"
-        };
-      }
-      return e;
-    });
-    await saveEvents(updated);
+    await updateEvent(id, { status: nextStatus, completed: nextStatus === "Completed" });
   };
 
   const handleToggleComplete = async (id: string) => {
-    const updated = events.map(e => {
-      if (e.id === id) {
-        const nextCompleted = !e.completed;
-        return { 
-          ...e, 
-          completed: nextCompleted,
-          status: (nextCompleted ? "Completed" : "Pending") as any
-        };
-      }
-      return e;
-    });
-    await saveEvents(updated);
+    const event = events.find(e => e.id === id);
+    if (!event) return;
+    const nextCompleted = !event.completed;
+    await updateEvent(id, { completed: nextCompleted, status: nextCompleted ? "Completed" : "Pending" });
   };
 
   const handleDeleteEvent = async (id: string) => {
-    const updated = events.filter(e => e.id !== id);
-    await saveEvents(updated);
+    await deleteEvent(id);
   };
 
   // Launch target engine dynamically (Quick Launch - Part 7)
@@ -252,14 +212,14 @@ export function StudyPlanner() {
   const setToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setSelectedDateStr(today.toISOString().split("T")[0]);
+    setSelectedDateStr(toLocalDateStr(today));
   };
 
   const selectedDayEvents = useMemo(() => {
     return events.filter(e => e.date === selectedDateStr);
   }, [events, selectedDateStr]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toLocalDateStr();
   
   // Dashboard highlights (Today, Upcoming, Overdue, Completed) - Part 7
   const stats = useMemo(() => {
@@ -374,7 +334,7 @@ export function StudyPlanner() {
               </div>
               <div className="grid grid-cols-7 grid-rows-6 flex-1 gap-1.5">
                 {monthDays.map((slot, idx) => {
-                  const dateStr = slot.date.toISOString().split("T")[0];
+                  const dateStr = toLocalDateStr(slot.date);
                   const dayEvents = events.filter(e => e.date === dateStr);
                   const isSelected = selectedDateStr === dateStr;
                   const isToday = todayStr === dateStr;
@@ -417,7 +377,7 @@ export function StudyPlanner() {
           {viewType === "week" && (
             <div className="h-full grid grid-cols-7 gap-2">
               {weekDays.map((day, idx) => {
-                const dateStr = day.toISOString().split("T")[0];
+                const dateStr = toLocalDateStr(day);
                 const dayEvents = events.filter(e => e.date === dateStr);
                 const isSelected = selectedDateStr === dateStr;
                 const isToday = todayStr === dateStr;
@@ -465,7 +425,7 @@ export function StudyPlanner() {
             <div className="h-full flex flex-col overflow-y-auto custom-scrollbar pr-1">
               <div className="space-y-3">
                 {events
-                  .filter(e => e.date === currentDate.toISOString().split("T")[0])
+                  .filter(e => e.date === toLocalDateStr(currentDate))
                   .sort((a,b) => (a.startTime || "10:00").localeCompare(b.startTime || "10:00"))
                   .map(e => (
                     <div 

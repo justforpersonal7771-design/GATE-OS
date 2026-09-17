@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { Topbar } from "./topbar";
 import { useDataStore } from "@/store/use-data-store";
 
@@ -10,6 +11,11 @@ import dynamic from "next/dynamic";
 
 const CommandPalette = dynamic(
   () => import("../exam/command-palette").then(m => m.CommandPalette),
+  { ssr: false }
+);
+
+const ToastContainer = dynamic(
+  () => import("../ui/toast-container").then(m => m.ToastContainer),
   { ssr: false }
 );
 
@@ -51,6 +57,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+        <ToastContainer />
       </div>
     );
   }
@@ -60,10 +67,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <Topbar />
       <div className="flex-1 w-full overflow-hidden">
         <main className="w-full h-full overflow-y-auto p-4 sm:p-6 md:p-8 z-0 custom-scrollbar">
-          {children}
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
         </main>
       </div>
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+      <ToastContainer />
     </div>
   );
 }

@@ -1,22 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Clock, Eye, RotateCcw, Calendar, CheckSquare, Award } from "lucide-react";
+import { motion } from "motion/react";
+import { Eye, RotateCcw, Calendar, CheckSquare, Award } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
-
-interface ExamSession {
-  id: string;
-  draftConfig: any;
-  status: string;
-  startedAt: string;
-  elapsedSeconds: number;
-  responses: any;
-}
+import { RecentSessionSummary } from "@/types/analytics.types";
 
 interface RecentExamsProps {
-  recentSessions: ExamSession[];
-  onRetry: (session: ExamSession) => void;
+  recentSessions: RecentSessionSummary[];
+  onRetry: (session: RecentSessionSummary) => void;
 }
 
 export function RecentExams({ recentSessions, onRetry }: RecentExamsProps) {
@@ -30,42 +21,6 @@ export function RecentExams({ recentSessions, onRetry }: RecentExamsProps) {
     } catch {
       return "N/A";
     }
-  };
-
-  // Helper to compute accuracy, marks, duration
-  const computeSessionStats = (session: ExamSession) => {
-    let correct = 0;
-    let attempted = 0;
-    let totalMarks = 0;
-
-    const responsesList = Object.values(session.responses || {}) as any[];
-    responsesList.forEach(res => {
-      if (res.status === "ANSWERED" || res.status === "MARKED_AND_ANSWERED") {
-        attempted++;
-      }
-    });
-
-    const questions = session.draftConfig?.questions || [];
-    questions.forEach((qRef: any) => {
-      const res = (session.responses || {})[qRef.questionId] as any;
-      if (res && (res.status === "ANSWERED" || res.status === "MARKED_AND_ANSWERED")) {
-        // Wait, did we serialize correctness in the snapshot?
-        // Since we are computing locally, let's fetch question details if available.
-        // But wait! If we don't have the question repository loaded here, let's see:
-        // Actually, we can load from QuestionRepository directly!
-        // In the dashboard page, we can import QuestionRepository to fetch question marks.
-        // Let's import QuestionRepository inside this component as well.
-      }
-    });
-
-    // Let's estimate accuracy from session details if stored or computed in sessions
-    // Wait, let's check what fields we have on the raw session.
-    // In `app/(dashboard)/exam/results/page.tsx`, statsCalculations computes marks, correct, wrong, etc.
-    // We can run the same exact computation here!
-    return {
-      attempted,
-      durationText: `${Math.floor(session.elapsedSeconds / 60)}m ${session.elapsedSeconds % 60}s`,
-    };
   };
 
   const handleReview = (id: string) => {
@@ -89,7 +44,6 @@ export function RecentExams({ recentSessions, onRetry }: RecentExamsProps) {
           </div>
         ) : (
           recentSessions.map((session, index) => {
-            const stats = computeSessionStats(session);
             return (
               <motion.div
                 key={session.id}
@@ -100,20 +54,22 @@ export function RecentExams({ recentSessions, onRetry }: RecentExamsProps) {
               >
                 <div className="space-y-1">
                   <h4 className="font-bold text-sm text-[var(--text-primary)]">
-                    {session.draftConfig?.config?.name || "GATE Quick Mock Quiz"}
+                    {session.config?.name || "GATE Mock Session"}
                   </h4>
-                  
+
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-muted)] font-medium">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(session.startedAt)}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {stats.durationText}
-                    </span>
+                    {session.status === "SUBMITTED" && (
+                      <span className="flex items-center gap-1">
+                        <Award className="w-3.5 h-3.5" />
+                        {session.accuracy}% · {session.correct}/{session.attempted} correct
+                      </span>
+                    )}
                     <span className="capitalize font-bold text-indigo-600 dark:text-indigo-400">
-                      {session.status}
+                      {session.status.toLowerCase().replace("_", " ")}
                     </span>
                   </div>
                 </div>
@@ -131,7 +87,7 @@ export function RecentExams({ recentSessions, onRetry }: RecentExamsProps) {
                     className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-900/40 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Retry</span>
+                    <span>Practice Again</span>
                   </button>
                 </div>
               </motion.div>

@@ -2,15 +2,19 @@ import { motion, AnimatePresence } from "motion/react";
 
 // ... keep icons and other imports
 import { useDataStore } from "@/store/use-data-store";
-import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert } from "lucide-react";
+import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert, BrainCircuit, Calendar as CalendarIcon, ListTodo } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CalendarQuickPanel } from "./calendar-quick-panel";
+import { TodoQuickPanel } from "./todo-quick-panel";
+import { useToastStore } from "@/store/use-toast-store";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Exam Setup", href: "/setup", icon: Settings },
+  { label: "AI Mentor", href: "/ai-mentor", icon: BrainCircuit },
   { label: "Mistakes", href: "/mistakes", icon: ClipboardList },
   { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
   { label: "Revision", href: "/revision", icon: RefreshCw },
@@ -27,6 +31,10 @@ export function Topbar() {
 
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState<"ready" | "syncing">("ready");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [isTodoOpen, setIsTodoOpen] = useState(false);
+  const todoRef = useRef<HTMLDivElement>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -47,6 +55,28 @@ export function Topbar() {
       };
     }
   }, []);
+
+  useEffect(() => {
+    if (!isCalendarOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isCalendarOpen]);
+
+  useEffect(() => {
+    if (!isTodoOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (todoRef.current && !todoRef.current.contains(event.target as Node)) {
+        setIsTodoOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isTodoOpen]);
 
   const toggleTheme = () => {
     if (!mounted) return;
@@ -73,7 +103,7 @@ export function Topbar() {
     } catch (e) {
       console.error("Reset failed", e);
       setIsResetting(false);
-      alert("Reset failed: " + e);
+      useToastStore.getState().show("Reset failed: " + e, "error");
     }
   };
 
@@ -153,6 +183,44 @@ export function Topbar() {
           )}
 
           <div className="flex items-center gap-1">
+             <div className="relative" ref={calendarRef}>
+                <button
+                   onClick={() => setIsCalendarOpen(prev => !prev)}
+                   className={`p-2 rounded-md transition-colors cursor-pointer ${
+                     isCalendarOpen
+                       ? "text-indigo-500 bg-[var(--surface-secondary)]"
+                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
+                   }`}
+                   aria-label="Study Planner Quick Access"
+                   title="Study Planner"
+                >
+                   <CalendarIcon className="w-4 h-4" />
+                </button>
+                <AnimatePresence>
+                   {isCalendarOpen && (
+                      <CalendarQuickPanel onClose={() => setIsCalendarOpen(false)} />
+                   )}
+                </AnimatePresence>
+             </div>
+
+             <div className="relative" ref={todoRef}>
+                <button
+                   onClick={() => setIsTodoOpen(prev => !prev)}
+                   className={`p-2 rounded-md transition-colors cursor-pointer ${
+                     isTodoOpen
+                       ? "text-indigo-500 bg-[var(--surface-secondary)]"
+                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
+                   }`}
+                   aria-label="To-Do List Quick Access"
+                   title="To-Do List"
+                >
+                   <ListTodo className="w-4 h-4" />
+                </button>
+                <AnimatePresence>
+                   {isTodoOpen && <TodoQuickPanel />}
+                </AnimatePresence>
+             </div>
+
              <button
                 onClick={handleDeveloperReset}
                 disabled={isResetting}

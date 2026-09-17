@@ -3,6 +3,7 @@ import {
   QuestionRepository,
   RepositoryDiagnostics,
 } from "@/lib/repository/question-repository";
+import { IDBManager } from "@/lib/repository/storage/idb-manager";
 
 interface DataState {
   isInitialized: boolean;
@@ -16,6 +17,7 @@ interface DataState {
   initializeData: (url?: string) => Promise<void>;
   loadRepository: (url?: string) => Promise<void>;
   refreshRepository: (url?: string) => Promise<void>;
+  refreshAIGeneratedQuestions: () => Promise<void>;
 }
 
 export const useDataStore = create<DataState>((set, get) => ({
@@ -39,6 +41,17 @@ export const useDataStore = create<DataState>((set, get) => ({
 
     try {
       await QuestionRepository.initialize(url);
+
+      // Load AI Generated Questions from IndexedDB and register them
+      try {
+        const aiQuestions = await IDBManager.getAIGeneratedQuestions();
+        for (const q of aiQuestions) {
+          QuestionRepository.registerDynamicQuestion(q);
+        }
+      } catch (e) {
+        console.warn("Failed to load AI questions on initialization:", e);
+      }
+
       const diagnostics = QuestionRepository.generateDiagnostics();
 
       set({
@@ -78,6 +91,24 @@ export const useDataStore = create<DataState>((set, get) => ({
         isLoading: false,
         error: err.message || "Failed to refresh question repository.",
       });
+    }
+  },
+
+  refreshAIGeneratedQuestions: async () => {
+    try {
+      const aiQuestions = await IDBManager.getAIGeneratedQuestions();
+      for (const q of aiQuestions) {
+        QuestionRepository.registerDynamicQuestion(q);
+      }
+      const diagnostics = QuestionRepository.generateDiagnostics();
+      set({
+        totalQuestions: diagnostics.totalQuestions,
+        totalSubjects: diagnostics.totalSubjects,
+        totalTopics: diagnostics.totalTopics,
+        diagnostics: diagnostics,
+      });
+    } catch (e) {
+      console.warn("Failed to refresh AI questions:", e);
     }
   },
 }));

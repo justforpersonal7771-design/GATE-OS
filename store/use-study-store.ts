@@ -10,7 +10,7 @@ interface StudyState {
   loadStudyData: () => Promise<void>;
   
   // Bookmarks
-  addBookmark: (questionId: string, notes: string, subject: string, topic: string, selectedOptions?: string[], natValue?: string) => Promise<void>;
+  addBookmark: (questionId: string, notes: string, subject: string, topic: string, selectedOptions?: string[], natValue?: string, extraFields?: Partial<BookmarkEntry>) => Promise<void>;
   removeBookmark: (questionId: string) => Promise<void>;
   updateBookmarkNotes: (questionId: string, notes: string) => Promise<void>;
   
@@ -33,7 +33,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     set({ mistakes, bookmarks, loading: false });
   },
 
-  addBookmark: async (questionId, notes, subject, topic, selectedOptions, natValue) => {
+  addBookmark: async (questionId, notes, subject, topic, selectedOptions, natValue, extraFields) => {
     const newBookmark: BookmarkEntry = {
       questionId,
       createdAt: new Date().toISOString(),
@@ -41,7 +41,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       subject,
       topic,
       selectedOptions,
-      natValue
+      natValue,
+      ...extraFields
     };
     await IDBManager.saveBookmark(newBookmark);
     await get().loadStudyData();

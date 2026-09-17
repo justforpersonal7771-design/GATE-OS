@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useDataStore } from "@/store/use-data-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
@@ -9,14 +10,17 @@ import { MathJaxContext } from "better-react-mathjax";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { 
   BookmarkMinus, Loader2, ChevronLeft, ChevronRight, StickyNote, Star, 
-  Tag, Folder, Plus, Calendar, Search, ArrowUpDown, Pin, Sparkles, Trash2 
+  Tag, Folder, Plus, Calendar, Search, ArrowUpDown, Pin, Sparkles, Trash2, X
 } from "lucide-react";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { PersonalNotesDrawer } from "@/components/ui/personal-notes-drawer";
 import { FullscreenNavigation } from "@/components/ui/fullscreen-navigation";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
+import { useRouter } from "next/navigation";
+import { AIResponseParser } from "@/lib/ai/ai-response-parser";
 
 export default function BookmarksPage() {
+  const router = useRouter();
   const { isInitialized } = useDataStore();
   const { bookmarks, loadStudyData, removeBookmark } = useStudyStore();
   
@@ -286,19 +290,24 @@ export default function BookmarksPage() {
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {processedBookmarks.map((b) => {
+                  {processedBookmarks.map((b, idx) => {
                     const isFav = b.favorite;
                     const isPinned = b.pinned;
                     const priorityColor = b.priority === "High" ? "bg-red-500" : b.priority === "Medium" ? "bg-amber-500" : "bg-blue-500";
-                    
+
                     return (
-                      <li key={b.questionId}>
+                      <motion.li
+                        key={b.questionId}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: Math.min(idx * 0.03, 0.4), duration: 0.2 }}
+                      >
                         <button
                           onClick={() => {
                             setActiveBookmark(b.questionId);
                             handleUpdateBookmarkMeta(b.questionId, { recentlyViewedAt: new Date().toISOString() });
                           }}
-                          className={`w-full text-left p-4 hover:bg-[var(--surface-elevated)] transition-colors relative ${activeBookmark === b.questionId ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-l-4 border-indigo-500' : 'border-l-4 border-transparent'}`}
+                          className={`w-full text-left p-4 hover:bg-[var(--surface-elevated)] transition-all duration-200 relative ${activeBookmark === b.questionId ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:border-indigo-500/30'}`}
                         >
                           <div className="flex justify-between items-start mb-1 gap-2">
                              <span className="font-bold text-[var(--text-primary)] text-xs line-clamp-1">{b.subject}</span>
@@ -327,7 +336,7 @@ export default function BookmarksPage() {
                             </div>
                           )}
                         </button>
-                      </li>
+                      </motion.li>
                     );
                   })}
                 </ul>
@@ -339,7 +348,9 @@ export default function BookmarksPage() {
         {/* Collapse Handle Button */}
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="hidden md:flex items-center justify-center w-6 h-12 my-auto bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-secondary)] rounded-r-lg -ml-6 z-20 transition shadow-sm hover:text-[var(--text-primary)] cursor-pointer shrink-0"
+          className={`hidden md:flex items-center justify-center w-6 h-12 my-auto bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] z-20 transition shadow-sm cursor-pointer shrink-0 ${
+            isSidebarCollapsed ? "ml-0 rounded-r-lg border-l-0" : "-ml-3 rounded-full"
+          }`}
           title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -353,7 +364,7 @@ export default function BookmarksPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="md:hidden p-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                    className="md:hidden p-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
                     title="Toggle Sidebar"
                   >
                     <ChevronRight className={`w-4 h-4 transition-transform ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
@@ -369,9 +380,9 @@ export default function BookmarksPage() {
                   {/* Star Toggle */}
                   <button
                     onClick={() => handleUpdateBookmarkMeta(activeBookmark, { favorite: !activeEntry.favorite })}
-                    className={`p-2 border rounded-lg transition ${
+                    className={`p-2 border rounded-lg transition cursor-pointer hover:bg-[var(--surface-secondary)] hover:border-[var(--border-strong)] ${
                       activeEntry.favorite 
-                        ? "bg-amber-500/10 border-amber-500/30 text-amber-500" 
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20" 
                         : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-amber-500"
                     }`}
                     title={activeEntry.favorite ? "Unfavorite" : "Favorite"}
@@ -382,14 +393,14 @@ export default function BookmarksPage() {
                   {/* Pin Toggle */}
                   <button
                     onClick={() => handleUpdateBookmarkMeta(activeBookmark, { pinned: !activeEntry.pinned })}
-                    className={`p-2 border rounded-lg transition ${
+                    className={`p-2 border rounded-lg transition cursor-pointer hover:bg-[var(--surface-secondary)] hover:border-[var(--border-strong)] ${
                       activeEntry.pinned 
-                        ? "bg-indigo-600/10 border-indigo-600/30 text-indigo-600 dark:text-indigo-400" 
+                        ? "bg-indigo-600/10 border-indigo-600/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/20" 
                         : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-indigo-500"
                     }`}
                     title={activeEntry.pinned ? "Unpin" : "Pin"}
                   >
-                    <Pin className={`w-4 h-4 ${activeEntry.pinned ? "fill-indigo-500 text-indigo-500 text-indigo-500" : ""}`} />
+                    <Pin className={`w-4 h-4 ${activeEntry.pinned ? "fill-indigo-500 text-indigo-500" : ""}`} />
                   </button>
 
                   {/* Modern Priority selector custom dropdown */}
@@ -401,13 +412,32 @@ export default function BookmarksPage() {
                   />
 
                   <button
-                    onClick={() => setIsNotesOpen(!isNotesOpen)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg transition-colors"
+                    onClick={() => router.push(`/ai-tutor?qid=${activeBookmark}`)}
+                    className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer flex items-center justify-center shrink-0"
+                    title="Explain with AI Tutor"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const nextVal = !isNotesOpen;
+                      setIsNotesOpen(nextVal);
+                      if (nextVal) {
+                        setIsSidebarCollapsed(true);
+                      }
+                    }}
+                    className={`relative p-2 border rounded-lg transition cursor-pointer flex items-center justify-center shrink-0 ${
+                      isNotesOpen
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-600 hover:bg-amber-500/20"
+                        : "bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+                    }`}
                     title="Personal Notes"
                   >
                     <StickyNote className="w-4 h-4 text-amber-500" />
-                    <span>Notes</span>
-                    {activeEntry.notes && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+                    {activeEntry.notes && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-[var(--surface)] animate-pulse" />
+                    )}
                   </button>
 
                   <button
@@ -417,9 +447,10 @@ export default function BookmarksPage() {
                         setActiveBookmark(null);
                       }
                     }}
-                    className="flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition"
+                    className="p-2 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-lg transition cursor-pointer flex items-center justify-center shrink-0"
+                    title="Remove Bookmark"
                   >
-                    <BookmarkMinus className="w-4 h-4" /> Remove
+                    <BookmarkMinus className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -508,6 +539,32 @@ export default function BookmarksPage() {
                   <div className="text-lg md:text-xl font-medium leading-relaxed text-[var(--text-primary)] mb-8">
                      <AstNodeRenderer nodes={question.contentAst} />
                   </div>
+
+                  {/* AI Tutor Insights integration */}
+                  {(activeEntry.aiShortcut || activeEntry.personalObservations) && (
+                    <div className="mt-8 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-xl space-y-3">
+                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4" />
+                        AI Tutor Saved Insights
+                      </h4>
+                      {activeEntry.aiShortcut && (
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-[var(--text-muted)] block mb-0.5">Saved Shortcut Trick</span>
+                          <div className="text-xs font-semibold text-[var(--text-secondary)] leading-relaxed">
+                            <AstNodeRenderer nodes={AIResponseParser.parse(activeEntry.aiShortcut)} />
+                          </div>
+                        </div>
+                      )}
+                      {activeEntry.personalObservations && (
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-[var(--text-muted)] block mb-0.5">Personal Observations</span>
+                          <div className="text-xs font-semibold text-[var(--text-secondary)] leading-relaxed">
+                            <AstNodeRenderer nodes={AIResponseParser.parse(activeEntry.personalObservations)} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Options Fixed Area */}
@@ -560,26 +617,72 @@ export default function BookmarksPage() {
                   </div>
                 </div>
               </div>
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]"
+            >
+               <BookmarkMinus className="w-12 h-12 text-[var(--text-muted)] mb-4" />
+               <h3 className="font-bold text-lg text-[var(--text-primary)] mb-1">No bookmark selected</h3>
+               <p className="text-sm text-[var(--text-muted)] text-center max-w-sm">Select a bookmarked question from the sidebar to review detailed answers and add notes.</p>
+            </motion.div>
+          )}
+        </div>
 
-              {/* Personal Notes Drawer */}
-              <PersonalNotesDrawer
-                isOpen={isNotesOpen}
-                onClose={() => setIsNotesOpen(false)}
-                notes={activeEntry.notes || ""}
-                onNotesChange={async (notes) => {
+        {/* Inline Curved Notes Panel */}
+        <AnimatePresence>
+        {isNotesOpen && activeBookmark && activeEntry && (
+          <motion.div
+            initial={{ opacity: 0, x: 24, width: 0 }}
+            animate={{ opacity: 1, x: 0, width: 320 }}
+            exit={{ opacity: 0, x: 24, width: 0 }}
+            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            className="h-full flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm shrink-0 overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--surface-secondary)]">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider text-xs">
+                <StickyNote className="w-4 h-4" />
+                <span>Personal Notes</span>
+              </div>
+              <button
+                onClick={() => setIsNotesOpen(false)}
+                className="p-1 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-4 flex flex-col gap-3">
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-extrabold">
+                Add formulas, shortcuts, hints, or personal notes to this question.
+              </p>
+              <textarea
+                value={activeEntry.notes || ""}
+                onChange={async (e) => {
+                  const notes = e.target.value;
                   const { updateBookmarkNotes } = useStudyStore.getState();
                   await updateBookmarkNotes(activeBookmark, notes);
                 }}
+                placeholder="Write your note here... (Changes are saved automatically)"
+                className="w-full flex-1 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)]/50 text-[var(--text-primary)] focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-none text-xs font-semibold leading-relaxed"
               />
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">
-               <BookmarkMinus className="w-12 h-12 text-[var(--text-muted)] mb-4 animate-bounce" />
-               <h3 className="font-bold text-lg text-[var(--text-primary)] mb-1">No bookmark selected</h3>
-               <p className="text-sm text-[var(--text-muted)] text-center max-w-sm">Select a bookmarked question from the sidebar to review detailed answers and add notes.</p>
             </div>
-          )}
-        </div>
+
+            {/* Footer */}
+            <button
+              onClick={() => setIsNotesOpen(false)}
+              className="p-4 border-t border-[var(--border-subtle)] text-center bg-[var(--surface-secondary)] hover:bg-[var(--surface-elevated)] transition-colors text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-black uppercase tracking-wider cursor-pointer w-full"
+            >
+              Save & Close Note
+            </button>
+          </motion.div>
+        )}
+        </AnimatePresence>
       </div>
     </MathJaxContext>
   );

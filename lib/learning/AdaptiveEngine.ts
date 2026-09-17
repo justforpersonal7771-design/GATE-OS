@@ -1,5 +1,6 @@
 import { RenderableQuestion } from "@/types/question.types";
 import { MistakeEntry, BookmarkEntry } from "@/types/study.types";
+import { toLocalDateStr } from "@/lib/utils";
 
 export interface AdaptiveRevisionItem {
   id: string; // questionId
@@ -150,7 +151,7 @@ export class AdaptiveEngine {
         confidencePercent: Math.round(confidence),
         revisionCount,
         lastRevised: lastRevisedStr,
-        nextSuggestedRevision: nextSuggested.toISOString().split("T")[0]
+        nextSuggestedRevision: toLocalDateStr(nextSuggested)
       });
     });
 

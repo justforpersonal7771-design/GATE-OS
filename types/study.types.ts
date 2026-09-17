@@ -21,6 +21,12 @@ export interface MistakeEntry {
   confidence?: number;  // 0-100 score
   revisionStatus?: 'Very High Priority' | 'High' | 'Medium' | 'Low' | 'Completed';
   retryCount?: number;  // total retries attempted
+
+  // AI-generated diagnostic insights
+  aiCommonMistakeAnalysis?: string;
+  aiRootCause?: string;
+  aiLearningRecommendation?: string;
+  aiRetryRecommendation?: string;
 }
 
 export interface BookmarkEntry {
@@ -40,4 +46,12 @@ export interface BookmarkEntry {
   favorite?: boolean;
   pinned?: boolean;
   recentlyViewedAt?: string;
+
+  // AI-generated workspace insights
+  aiExplanation?: string;
+  aiShortcut?: string;
+  aiFormula?: string;
+  aiPracticeQuestions?: string; // stringified JSON
+  personalObservations?: string;
+  isShortcutOnly?: boolean;
 }

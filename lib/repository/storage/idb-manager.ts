@@ -11,12 +11,17 @@ import {
   STORE_MISTAKES,
   STORE_BOOKMARKS,
   STORE_CUSTOM_TEMPLATES,
+  STORE_AI_RESPONSES,
+  STORE_AI_GENERATED_QUESTIONS,
+  STORE_AI_MEMORY,
 } from "./cache-constants";
 import {
   MetadataRecord,
   ExamSessionRecord,
   QuestionCacheRecord,
   GatePrepDB,
+  AIResponseRecord,
+  AIMemoryRecord,
 } from "./cache-types";
 import { CustomTestTemplate } from "@/types/exam.types";
 
@@ -61,6 +66,17 @@ export class IDBManager {
           }
           if (!db.objectStoreNames.contains(STORE_CUSTOM_TEMPLATES)) {
             db.createObjectStore(STORE_CUSTOM_TEMPLATES, { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains(STORE_AI_RESPONSES)) {
+            db.createObjectStore(STORE_AI_RESPONSES, { keyPath: "promptHash" });
+          }
+          if (!db.objectStoreNames.contains(STORE_AI_GENERATED_QUESTIONS)) {
+            db.createObjectStore(STORE_AI_GENERATED_QUESTIONS, {
+              keyPath: "question_id",
+            });
+          }
+          if (!db.objectStoreNames.contains(STORE_AI_MEMORY)) {
+            db.createObjectStore(STORE_AI_MEMORY, { keyPath: "key" });
           }
         },
       });
@@ -299,5 +315,128 @@ export class IDBManager {
 
   public static async saveCalendarEvents(events: import("@/types/calendar.types").CalendarEvent[]): Promise<void> {
     await this.setMetadata("calendar_events", JSON.stringify(events));
+  }
+
+  // =========== To-Do List Helpers ===========
+  public static async getTodoItems(): Promise<import("@/types/todo.types").TodoItem[]> {
+    const record = await this.getMetadata("todo_items");
+    if (record && record.value) {
+      try {
+        return JSON.parse(record.value as string);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  public static async saveTodoItems(items: import("@/types/todo.types").TodoItem[]): Promise<void> {
+    await this.setMetadata("todo_items", JSON.stringify(items));
+  }
+
+  // =========== AI Cache Helpers ===========
+  public static async getAIResponse(promptHash: string): Promise<AIResponseRecord | undefined> {
+    try {
+      const db = await this.initializeDatabase();
+      const record = await db.get(STORE_AI_RESPONSES, promptHash);
+      if (record && record.ttl > Date.now()) {
+        return record;
+      }
+      if (record) {
+        // Purge expired record lazily
+        await db.delete(STORE_AI_RESPONSES, promptHash);
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  public static async saveAIResponse(record: AIResponseRecord): Promise<void> {
+    try {
+      const db = await this.initializeDatabase();
+      await db.put(STORE_AI_RESPONSES, record);
+    } catch {
+      // Ignored
+    }
+  }
+
+  public static async purgeExpiredAIResponses(): Promise<void> {
+    try {
+      const db = await this.initializeDatabase();
+      const tx = db.transaction(STORE_AI_RESPONSES, "readwrite");
+      const store = tx.objectStore(STORE_AI_RESPONSES);
+      const records = await store.getAll();
+      const now = Date.now();
+      for (const r of records) {
+        if (r.ttl <= now) {
+          await store.delete(r.promptHash);
+        }
+      }
+      await tx.done;
+    } catch {
+      // Ignored
+    }
+  }
+
+  public static async saveAIGeneratedQuestion(q: any): Promise<void> {
+    try {
+      const db = await this.initializeDatabase();
+      await db.put(STORE_AI_GENERATED_QUESTIONS, q);
+    } catch (e) {
+      console.error("Failed to save AI Generated Question to IDB", e);
+    }
+  }
+
+  public static async getAIGeneratedQuestions(): Promise<any[]> {
+    try {
+      const db = await this.initializeDatabase();
+      return await db.getAll(STORE_AI_GENERATED_QUESTIONS);
+    } catch (e) {
+      console.error("Failed to get AI Generated Questions from IDB", e);
+      return [];
+    }
+  }
+
+  public static async clearAIGeneratedQuestions(): Promise<void> {
+    try {
+      const db = await this.initializeDatabase();
+      await db.clear(STORE_AI_GENERATED_QUESTIONS);
+    } catch (e) {
+      console.error("Failed to clear AI Generated Questions in IDB", e);
+    }
+  }
+
+  public static async saveAIMemory(key: string, value: any): Promise<void> {
+    try {
+      const db = await this.initializeDatabase();
+      await db.put(STORE_AI_MEMORY, {
+        key,
+        value,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error(`Failed to save AI Memory for ${key}`, e);
+    }
+  }
+
+  public static async getAIMemory(key: string): Promise<any | undefined> {
+    try {
+      const db = await this.initializeDatabase();
+      const record = await db.get(STORE_AI_MEMORY, key);
+      return record ? record.value : undefined;
+    } catch (e) {
+      console.error(`Failed to get AI Memory for ${key}`, e);
+      return undefined;
+    }
+  }
+
+  public static async deleteAIMemory(key: string): Promise<void> {
+    try {
+      const db = await this.initializeDatabase();
+      await db.delete(STORE_AI_MEMORY, key);
+    } catch (e) {
+      console.error(`Failed to delete AI Memory for ${key}`, e);
+    }
   }
 }
