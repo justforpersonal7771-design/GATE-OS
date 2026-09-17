@@ -48,11 +48,6 @@ const RecentExams = dynamic(() => import("@/components/dashboard/recent-exams").
   loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[380px] rounded-2xl" />
 });
 
-const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
-  ssr: false,
-  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[520px] rounded-2xl" />
-});
-
 export default function Home() {
   const router = useRouter();
   const { loadRepository, isInitialized } = useDataStore();
@@ -186,7 +181,7 @@ export default function Home() {
         </div>
 
         {/* Metric Hours */}
-        <div className="bg-[var(--surface)] border border(--border) p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Study Hours</span>
@@ -232,9 +227,6 @@ export default function Home() {
             hasActiveSession={!!activeSession && activeSession.status !== "SUBMITTED"}
             onContinueSession={handleResume}
           />
-
-          {/* Study Planner Monthly Calendar */}
-          <StudyPlanner />
         </div>
 
         {/* Right Side (Spans 4 columns) */}

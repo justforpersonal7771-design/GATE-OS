@@ -2,11 +2,12 @@ import { motion, AnimatePresence } from "motion/react";
 
 // ... keep icons and other imports
 import { useDataStore } from "@/store/use-data-store";
-import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert, BrainCircuit } from "lucide-react";
+import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert, BrainCircuit, Calendar as CalendarIcon } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CalendarQuickPanel } from "./calendar-quick-panel";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -28,6 +29,8 @@ export function Topbar() {
 
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState<"ready" | "syncing">("ready");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -48,6 +51,17 @@ export function Topbar() {
       };
     }
   }, []);
+
+  useEffect(() => {
+    if (!isCalendarOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isCalendarOpen]);
 
   const toggleTheme = () => {
     if (!mounted) return;
@@ -154,6 +168,26 @@ export function Topbar() {
           )}
 
           <div className="flex items-center gap-1">
+             <div className="relative" ref={calendarRef}>
+                <button
+                   onClick={() => setIsCalendarOpen(prev => !prev)}
+                   className={`p-2 rounded-md transition-colors cursor-pointer ${
+                     isCalendarOpen
+                       ? "text-indigo-500 bg-[var(--surface-secondary)]"
+                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
+                   }`}
+                   aria-label="Study Planner Quick Access"
+                   title="Study Planner"
+                >
+                   <CalendarIcon className="w-4 h-4" />
+                </button>
+                <AnimatePresence>
+                   {isCalendarOpen && (
+                      <CalendarQuickPanel onClose={() => setIsCalendarOpen(false)} />
+                   )}
+                </AnimatePresence>
+             </div>
+
              <button
                 onClick={handleDeveloperReset}
                 disabled={isResetting}

@@ -7,14 +7,14 @@ import {
   Play, Check, Trash2, CalendarRange, Clock3, AlertTriangle, 
   CheckSquare, BookOpen, Star, HelpCircle, AlertCircle, RefreshCw, Zap
 } from "lucide-react";
-import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { CalendarEvent } from "@/types/calendar.types";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr } from "@/lib/utils";
+import { useCalendarStore } from "@/store/use-calendar-store";
 
 export function StudyPlanner() {
   const router = useRouter();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const { events, loadEvents, addEvent, updateEvent, deleteEvent } = useCalendarStore();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"month" | "week" | "day">("month");
   
@@ -50,30 +50,9 @@ export function StudyPlanner() {
     toLocalDateStr()
   );
 
-  // Load events from IDB
-  const loadEvents = async () => {
-    const data = await IDBManager.getCalendarEvents();
-    // Migrating/mapping release 1 events that don't have new fields
-    const updatedData = data.map((e: any) => ({
-      ...e,
-      studyType: e.studyType || "Study",
-      revisionCycle: e.revisionCycle || "One Time",
-      status: e.status || (e.completed ? "Completed" : "Pending"),
-      timeRangeType: e.timeRangeType || "start_time",
-      startTime: e.startTime || e.time || "10:00"
-    }));
-    setEvents(updatedData);
-  };
-
   useEffect(() => {
     loadEvents();
-  }, []);
-
-  // Save events back to IDB
-  const saveEvents = async (updated: CalendarEvent[]) => {
-    setEvents(updated);
-    await IDBManager.saveCalendarEvents(updated);
-  };
+  }, [loadEvents]);
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,8 +84,7 @@ export function StudyPlanner() {
       section: newEvent.section || ""
     };
 
-    const updated = [...events, event];
-    await saveEvents(updated);
+    await addEvent(event);
     setIsAddOpen(false);
     
     // Reset Form
@@ -137,37 +115,18 @@ export function StudyPlanner() {
   };
 
   const handleStatusChange = async (id: string, nextStatus: CalendarEvent["status"]) => {
-    const updated = events.map(e => {
-      if (e.id === id) {
-        return {
-          ...e,
-          status: nextStatus,
-          completed: nextStatus === "Completed"
-        };
-      }
-      return e;
-    });
-    await saveEvents(updated);
+    await updateEvent(id, { status: nextStatus, completed: nextStatus === "Completed" });
   };
 
   const handleToggleComplete = async (id: string) => {
-    const updated = events.map(e => {
-      if (e.id === id) {
-        const nextCompleted = !e.completed;
-        return { 
-          ...e, 
-          completed: nextCompleted,
-          status: (nextCompleted ? "Completed" : "Pending") as any
-        };
-      }
-      return e;
-    });
-    await saveEvents(updated);
+    const event = events.find(e => e.id === id);
+    if (!event) return;
+    const nextCompleted = !event.completed;
+    await updateEvent(id, { completed: nextCompleted, status: nextCompleted ? "Completed" : "Pending" });
   };
 
   const handleDeleteEvent = async (id: string) => {
-    const updated = events.filter(e => e.id !== id);
-    await saveEvents(updated);
+    await deleteEvent(id);
   };
 
   // Launch target engine dynamically (Quick Launch - Part 7)
