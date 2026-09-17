@@ -9,7 +9,7 @@ import { QuestionRepository } from "@/lib/repository/question-repository";
 import { RenderableQuestion } from "@/types/question.types";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { MathJaxContext } from "better-react-mathjax";
-import { Loader2, ArrowLeft, ArrowRight, ChevronLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, ChevronLeft, Sparkles } from "lucide-react";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { FullscreenNavigation } from "@/components/ui/fullscreen-navigation";
 
@@ -18,12 +18,16 @@ function RevisionSessionContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") || "mistakes";
   
-  const { mistakes, bookmarks, markMistakeMastered } = useStudyStore();
+  const { mistakes, bookmarks, markMistakeMastered, loadStudyData } = useStudyStore();
   const { dashboardMetrics } = useAnalyticsStore();
-  
+
   const [questions, setQuestions] = useState<RenderableQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStudyData();
+  }, [loadStudyData]);
 
   useEffect(() => {
     let qIds: string[] = [];
@@ -95,8 +99,18 @@ function RevisionSessionContent() {
              </button>
              <h1 className="font-bold text-[var(--text-primary)] capitalize">Revision: {mode.replace("_", " ")}</h1>
           </div>
-          <div className="font-semibold text-[var(--text-muted)]">
-            {currentIndex + 1} / {questions.length}
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={() => router.push(`/ai-tutor?qid=${currentQuestion.question_id}`)}
+              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer flex items-center justify-center shrink-0"
+              title="Explain with AI Tutor"
+            >
+              <Sparkles className="w-4 h-4" />
+            </motion.button>
+            <div className="font-semibold text-[var(--text-muted)]">
+              {currentIndex + 1} / {questions.length}
+            </div>
           </div>
         </div>
 
