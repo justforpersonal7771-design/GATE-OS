@@ -2,6 +2,7 @@ import { RenderableQuestion } from "@/types/question.types";
 import { MistakeEntry, BookmarkEntry } from "@/types/study.types";
 import { TopicMastery } from "./MasteryEngine";
 import { CalendarEvent } from "@/types/calendar.types";
+import { toLocalDateStr } from "@/lib/utils";
 
 export class RecommendationEngine {
   public static generateRecommendations(
@@ -46,7 +47,7 @@ export class RecommendationEngine {
 
     // 2. "Today's Target" recommendation
     // Look at today's calendar event, or generate dynamic target based on mistakes/bookmarks
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = toLocalDateStr();
     const todayEvents = calendarEvents.filter(e => e.date === todayStr && !e.completed);
     
     let targetTitle = "Practice Sessions";

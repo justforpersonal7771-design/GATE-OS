@@ -1,4 +1,5 @@
 import { ExamSession } from "@/types/exam-runtime.types";
+import { toLocalDateStr } from "@/lib/utils";
 
 export class StreakEngine {
   public static calculateStreak(sessions: ExamSession[]): {
@@ -16,7 +17,7 @@ export class StreakEngine {
 
     sessions.forEach(session => {
       if (session.startedAt) {
-        const dateStr = new Date(session.startedAt).toISOString().split("T")[0];
+        const dateStr = toLocalDateStr(new Date(session.startedAt));
         activeDates.add(dateStr);
       }
     });
@@ -51,7 +52,7 @@ export class StreakEngine {
     longestStreak = maxFoundStreak;
 
     // To calculate CURRENT streak relative to TODAY
-    const today = new Date().toISOString().split("T")[0];
+    const today = toLocalDateStr();
     const todayDate = new Date(today);
     const lastActive = new Date(lastActiveDate);
 

@@ -10,6 +10,7 @@ import {
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { CalendarEvent } from "@/types/calendar.types";
 import { useRouter } from "next/navigation";
+import { toLocalDateStr } from "@/lib/utils";
 
 export function StudyPlanner() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export function StudyPlanner() {
     title: "",
     description: "",
     category: "Study",
-    date: new Date().toISOString().split("T")[0],
+    date: toLocalDateStr(),
     color: "#6366f1",
     priority: "Medium",
     completed: false,
@@ -46,7 +47,7 @@ export function StudyPlanner() {
 
   // Selected day state for detail preview
   const [selectedDateStr, setSelectedDateStr] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    toLocalDateStr()
   );
 
   // Load events from IDB
@@ -252,14 +253,14 @@ export function StudyPlanner() {
   const setToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setSelectedDateStr(today.toISOString().split("T")[0]);
+    setSelectedDateStr(toLocalDateStr(today));
   };
 
   const selectedDayEvents = useMemo(() => {
     return events.filter(e => e.date === selectedDateStr);
   }, [events, selectedDateStr]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toLocalDateStr();
   
   // Dashboard highlights (Today, Upcoming, Overdue, Completed) - Part 7
   const stats = useMemo(() => {
@@ -374,7 +375,7 @@ export function StudyPlanner() {
               </div>
               <div className="grid grid-cols-7 grid-rows-6 flex-1 gap-1.5">
                 {monthDays.map((slot, idx) => {
-                  const dateStr = slot.date.toISOString().split("T")[0];
+                  const dateStr = toLocalDateStr(slot.date);
                   const dayEvents = events.filter(e => e.date === dateStr);
                   const isSelected = selectedDateStr === dateStr;
                   const isToday = todayStr === dateStr;
@@ -417,7 +418,7 @@ export function StudyPlanner() {
           {viewType === "week" && (
             <div className="h-full grid grid-cols-7 gap-2">
               {weekDays.map((day, idx) => {
-                const dateStr = day.toISOString().split("T")[0];
+                const dateStr = toLocalDateStr(day);
                 const dayEvents = events.filter(e => e.date === dateStr);
                 const isSelected = selectedDateStr === dateStr;
                 const isToday = todayStr === dateStr;
@@ -465,7 +466,7 @@ export function StudyPlanner() {
             <div className="h-full flex flex-col overflow-y-auto custom-scrollbar pr-1">
               <div className="space-y-3">
                 {events
-                  .filter(e => e.date === currentDate.toISOString().split("T")[0])
+                  .filter(e => e.date === toLocalDateStr(currentDate))
                   .sort((a,b) => (a.startTime || "10:00").localeCompare(b.startTime || "10:00"))
                   .map(e => (
                     <div 
