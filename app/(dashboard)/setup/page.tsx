@@ -638,7 +638,7 @@ export default function ExamSetupPage() {
                                                         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block">Option List</span>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                           {q.options.map((opt: any) => {
-                                                            const isOptCorrect = opt.option_id === "A";
+                                                            const isOptCorrect = !!opt.is_correct;
                                                             return (
                                                               <div 
                                                                 key={opt.option_id}

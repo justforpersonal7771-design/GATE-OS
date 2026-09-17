@@ -57,13 +57,13 @@ export const AstNodeRenderer = memo(function AstNodeRenderer({
           case "latex-inline":
             return (
               <span key={i} className="inline-block px-1 pointer-events-none">
-                <MathJax inline dynamic>{`\\(${node.content}\\)`}</MathJax>
+                <MathJax inline dynamic hideUntilTypeset="every">{`\\(${node.content}\\)`}</MathJax>
               </span>
             );
           case "latex-display":
             return (
               <div key={i} className="my-2 overflow-x-auto pointer-events-none">
-                <MathJax dynamic>{`\\[${node.content}\\]`}</MathJax>
+                <MathJax dynamic hideUntilTypeset="every">{`\\[${node.content}\\]`}</MathJax>
               </div>
             );
           case "image":
