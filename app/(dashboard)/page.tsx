@@ -8,7 +8,8 @@ import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { useStudyStore } from "@/store/use-study-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import dynamic from "next/dynamic";
-import { 
+import { motion, AnimatePresence } from "motion/react";
+import {
   Target, Clock, Flame, Loader2, TrendingUp
 } from "lucide-react";
 
@@ -124,8 +125,14 @@ export default function Home() {
       />
 
       {/* 2. Active Session Banner Alert */}
+      <AnimatePresence>
       {isHydrated && activeSession && activeSession.status !== "SUBMITTED" && (
-        <div className="p-5 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur shadow-sm relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="p-5 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
           <div className="flex gap-4 items-center relative z-10">
             <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
@@ -154,50 +161,71 @@ export default function Home() {
               Discard
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* 3. Premium Analytics Metrics Row Grid (Part 7) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Metric accuracy */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Practice Accuracy</span>
              <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{accuracyValue.toFixed(1)}%</div>
-        </div>
+        </motion.div>
 
         {/* Metric Solved */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Questions Solved</span>
              <Target className="w-4 h-4 text-indigo-500" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{solvedCount}</div>
-        </div>
+        </motion.div>
 
         {/* Metric Hours */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Study Hours</span>
              <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{studyHours} hrs</div>
-        </div>
+        </motion.div>
 
         {/* Metric Streak */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
+        >
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
           <div className="flex justify-between items-center mb-3">
              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Active Streak</span>
              <Flame className="w-4 h-4 text-rose-500 fill-rose-500 stroke-none" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{streakDays} days</div>
-        </div>
+        </motion.div>
       </div>
 
       {/* 4. Main Two-Column Content Grid */}

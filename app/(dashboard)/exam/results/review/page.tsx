@@ -326,7 +326,7 @@ export default function ReviewPage() {
             <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 overflow-hidden">
               <div className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-muted)] mb-4 px-1">Review Navigator</div>
 
-              <div className="flex-1 overflow-y-auto px-1 -mx-1 custom-scrollbar content-start">
+              <div className="flex-1 overflow-y-auto px-1 -mx-1 py-1.5 -my-1.5 custom-scrollbar content-start">
                 <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-5 gap-2">
                   {draftQuestions.map((qRef, idx) => {
                     const resInfo = checkCorrectness(qRef.questionId);
@@ -343,16 +343,17 @@ export default function ReviewPage() {
                     const isCurrent = currentIndex === idx;
 
                     return (
-                      <button
+                      <motion.button
                         key={qRef.questionId + idx}
                         onClick={() => setCurrentIndex(idx)}
-                        className={`aspect-square w-full rounded-lg flex items-center justify-center font-bold text-sm transition-all border focus:outline-none cursor-pointer ${colorClass} ${isCurrent
+                        whileTap={{ scale: 0.95 }}
+                        className={`aspect-square w-full rounded-lg flex items-center justify-center font-bold text-sm transition-colors border focus:outline-none cursor-pointer ${colorClass} ${isCurrent
                             ? "ring-2 ring-inset ring-[var(--surface)] shadow-[0_0_0_2px_theme(colors.indigo.500)] scale-105 z-10"
-                            : "hover:bg-opacity-80 active:scale-95"
+                            : "hover:bg-opacity-80"
                           }`}
                       >
                         {idx + 1}
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>

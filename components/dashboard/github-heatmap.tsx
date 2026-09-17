@@ -2,8 +2,10 @@
 
 import { useMemo } from "react";
 import { Flame } from "lucide-react";
+import { motion } from "motion/react";
 
 import { AnalyticsSnapshot } from "@/types/analytics.types";
+import { toLocalDateStr } from "@/lib/utils";
 
 interface GithubHeatmapProps {
   snapshots: AnalyticsSnapshot[];
@@ -15,7 +17,7 @@ export function GithubHeatmap({ snapshots }: GithubHeatmapProps) {
     return Array.from({ length: 60 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (59 - i));
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateStr(d);
       const snap = snapshots.find(s => s.id === dateStr);
       
       const attempted = snap ? snap.totalQuestionsAttempted : 0;
@@ -34,13 +36,18 @@ export function GithubHeatmap({ snapshots }: GithubHeatmapProps) {
   }, [snapshots]);
 
   return (
-    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col justify-between hover-lift"
+    >
       <div>
         <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-muted)] mb-5 flex items-center gap-1.5">
           <Flame className="w-4 h-4 text-rose-500 fill-rose-500 stroke-none" />
           <span>Practice Heatmap (60 Days)</span>
         </h3>
-        
+
         {/* Heatmap Grid */}
         <div className="flex flex-wrap gap-1.5 py-2">
           {heatmapDays.map((day, idx) => {
@@ -50,9 +57,12 @@ export function GithubHeatmap({ snapshots }: GithubHeatmapProps) {
             else if (day.attempted >= 25) color = "bg-emerald-500 text-white";
 
             return (
-              <div 
-                key={day.date + idx} 
-                className={`relative w-4 h-4 rounded-sm ${color} transition-all duration-300 hover:scale-125 cursor-pointer group`}
+              <motion.div
+                key={day.date + idx}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: Math.min(idx * 0.006, 0.4), duration: 0.2 }}
+                className={`relative w-4 h-4 rounded-sm ${color} transition-[transform,background-color] duration-300 hover:scale-125 cursor-pointer group`}
               >
                 {/* Embedded HTML Tooltip */}
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
@@ -69,7 +79,7 @@ export function GithubHeatmap({ snapshots }: GithubHeatmapProps) {
                   {/* Arrow tooltip indicator */}
                   <div className="w-1.5 h-1.5 bg-slate-900 border-r border-b border-slate-700/50 transform rotate-45 mx-auto -mt-1" />
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -85,6 +95,6 @@ export function GithubHeatmap({ snapshots }: GithubHeatmapProps) {
         </div>
         <span>More Solved</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
