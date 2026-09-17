@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useDataStore } from "@/store/use-data-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
@@ -393,17 +394,22 @@ export default function MistakesPage() {
               </div>
             ) : (
               <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredMistakes.map((m) => {
+                {filteredMistakes.map((m, idx) => {
                   const isCurrent = activeMistake === m.questionId;
                   const repeatCount = m.occurrences || 1;
 
                   return (
-                    <li key={m.questionId}>
+                    <motion.li
+                      key={m.questionId}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: Math.min(idx * 0.03, 0.4), duration: 0.2 }}
+                    >
                       <button
                         onClick={() => setActiveMistake(m.questionId)}
-                        className={`w-full text-left px-4 py-2.5 hover:bg-[var(--surface-elevated)] transition-colors border-l-4 ${isCurrent
+                        className={`w-full text-left px-4 py-2.5 hover:bg-[var(--surface-elevated)] transition-all duration-200 border-l-4 ${isCurrent
                             ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-500'
-                            : 'border-transparent'
+                            : 'border-transparent hover:border-indigo-500/30'
                           }`}
                       >
                         <div className="flex justify-between items-center gap-2">
@@ -417,7 +423,7 @@ export default function MistakesPage() {
                         </div>
                         <span className="text-[10px] text-[var(--text-secondary)] block truncate font-medium mt-0.5">{m.topic}</span>
                       </button>
-                    </li>
+                    </motion.li>
                   );
                 })}
               </ul>
@@ -654,33 +660,43 @@ export default function MistakesPage() {
 
                   {/* Validate solution & mastery triggers */}
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    {validationOutcome !== null && (
-                      <span className={`text-xs font-black uppercase tracking-wider px-3.5 py-2.5 rounded-xl border ${validationOutcome === "correct"
-                          ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
-                          : "bg-red-500/10 border-red-500/20 text-rose-600 dark:text-rose-400 animate-pulse"
-                        }`}>
-                        {validationOutcome === "correct" ? "✓ Correct Answer!" : "✗ Incorrect retry"}
-                      </span>
-                    )}
+                    <AnimatePresence mode="wait">
+                      {validationOutcome !== null && (
+                        <motion.span
+                          key={validationOutcome}
+                          initial={{ opacity: 0, scale: 0.85 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.85 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                          className={`text-xs font-black uppercase tracking-wider px-3.5 py-2.5 rounded-xl border ${validationOutcome === "correct"
+                              ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+                              : "bg-red-500/10 border-red-500/20 text-rose-600 dark:text-rose-400"
+                            }`}>
+                          {validationOutcome === "correct" ? "✓ Correct Answer!" : "✗ Incorrect retry"}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
 
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
                       onClick={handleValidateAnswer}
                       className="px-6 py-2.5 text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-md shadow-indigo-600/10 cursor-pointer"
                     >
                       Validate Answer
-                    </button>
+                    </motion.button>
 
                     {activeEntry.mastered ? (
                       <span className="text-xs font-extrabold uppercase tracking-wider px-3 py-2 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-lg border border-emerald-200/50">
                         Mastered
                       </span>
                     ) : (
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.96 }}
                         onClick={() => handleUpdateMistakeMeta(activeMistake, { mastered: true })}
                         className="px-4 py-2 text-xs font-extrabold uppercase tracking-wider bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-lg transition cursor-pointer"
                       >
                         Mark Mastered
-                      </button>
+                      </motion.button>
                     )}
                   </div>
                 </div>
@@ -688,17 +704,29 @@ export default function MistakesPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">
-              <AlertTriangle className="w-12 h-12 text-[var(--text-muted)] mb-4 animate-bounce" />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]"
+            >
+              <AlertTriangle className="w-12 h-12 text-[var(--text-muted)] mb-4" />
               <h3 className="font-bold text-lg text-[var(--text-primary)] mb-1">No mistake selected</h3>
               <p className="text-sm text-[var(--text-muted)] text-center max-w-sm">Select a recorded mistake from the sidebar to test your retry progress or manually master the question.</p>
-            </div>
+            </motion.div>
           )}
         </div>
 
         {/* Inline Curved Notes Panel */}
+        <AnimatePresence>
         {isNotesOpen && activeMistake && activeEntry && (
-          <div className="w-80 h-full flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm shrink-0 overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, x: 24, width: 0 }}
+            animate={{ opacity: 1, x: 0, width: 320 }}
+            exit={{ opacity: 0, x: 24, width: 0 }}
+            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            className="h-full flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm shrink-0 overflow-hidden"
+          >
             {/* Header */}
             <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--surface-secondary)]">
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider text-xs">
@@ -737,8 +765,9 @@ export default function MistakesPage() {
             >
               Save & Close Note
             </button>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </MathJaxContext>
   );

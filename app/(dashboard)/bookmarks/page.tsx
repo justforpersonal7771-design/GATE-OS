@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useDataStore } from "@/store/use-data-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
@@ -289,19 +290,24 @@ export default function BookmarksPage() {
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {processedBookmarks.map((b) => {
+                  {processedBookmarks.map((b, idx) => {
                     const isFav = b.favorite;
                     const isPinned = b.pinned;
                     const priorityColor = b.priority === "High" ? "bg-red-500" : b.priority === "Medium" ? "bg-amber-500" : "bg-blue-500";
-                    
+
                     return (
-                      <li key={b.questionId}>
+                      <motion.li
+                        key={b.questionId}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: Math.min(idx * 0.03, 0.4), duration: 0.2 }}
+                      >
                         <button
                           onClick={() => {
                             setActiveBookmark(b.questionId);
                             handleUpdateBookmarkMeta(b.questionId, { recentlyViewedAt: new Date().toISOString() });
                           }}
-                          className={`w-full text-left p-4 hover:bg-[var(--surface-elevated)] transition-colors relative ${activeBookmark === b.questionId ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-l-4 border-indigo-500' : 'border-l-4 border-transparent'}`}
+                          className={`w-full text-left p-4 hover:bg-[var(--surface-elevated)] transition-all duration-200 relative ${activeBookmark === b.questionId ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:border-indigo-500/30'}`}
                         >
                           <div className="flex justify-between items-start mb-1 gap-2">
                              <span className="font-bold text-[var(--text-primary)] text-xs line-clamp-1">{b.subject}</span>
@@ -330,7 +336,7 @@ export default function BookmarksPage() {
                             </div>
                           )}
                         </button>
-                      </li>
+                      </motion.li>
                     );
                   })}
                 </ul>
@@ -613,17 +619,29 @@ export default function BookmarksPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">
-               <BookmarkMinus className="w-12 h-12 text-[var(--text-muted)] mb-4 animate-bounce" />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]"
+            >
+               <BookmarkMinus className="w-12 h-12 text-[var(--text-muted)] mb-4" />
                <h3 className="font-bold text-lg text-[var(--text-primary)] mb-1">No bookmark selected</h3>
                <p className="text-sm text-[var(--text-muted)] text-center max-w-sm">Select a bookmarked question from the sidebar to review detailed answers and add notes.</p>
-            </div>
+            </motion.div>
           )}
         </div>
 
         {/* Inline Curved Notes Panel */}
+        <AnimatePresence>
         {isNotesOpen && activeBookmark && activeEntry && (
-          <div className="w-80 h-full flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm shrink-0 overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, x: 24, width: 0 }}
+            animate={{ opacity: 1, x: 0, width: 320 }}
+            exit={{ opacity: 0, x: 24, width: 0 }}
+            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            className="h-full flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm shrink-0 overflow-hidden"
+          >
             {/* Header */}
             <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--surface-secondary)]">
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider text-xs">
@@ -662,8 +680,9 @@ export default function BookmarksPage() {
             >
               Save & Close Note
             </button>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </MathJaxContext>
   );
