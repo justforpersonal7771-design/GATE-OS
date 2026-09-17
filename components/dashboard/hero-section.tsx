@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Sparkles, Flame, CheckCircle2, TrendingUp, Trophy, Compass } from "lucide-react";
 
 interface HeroSectionProps {

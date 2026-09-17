@@ -6,7 +6,7 @@ import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { ExamSession } from "@/types/exam-runtime.types";
 import { QuestionRepository } from "@/lib/repository/question-repository";
 import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { 
   Award, Clock, Target, AlertCircle, CheckCircle, 
   XCircle, ArrowRight, Home, RefreshCw, BarChart2, ListFilter, HelpCircle

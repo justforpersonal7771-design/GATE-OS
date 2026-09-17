@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Calendar, ChevronLeft, ChevronRight, Plus, Clock, Tag, Flag, 
   Play, Check, Trash2, CalendarRange, Clock3, AlertTriangle, 

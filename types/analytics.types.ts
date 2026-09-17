@@ -50,10 +50,22 @@ export interface StudyMetrics {
   avgTimePerQuestionMs: number;
 }
 
+export interface RecentSessionSummary {
+  id: string;
+  config: { name: string };
+  updatedAt: string;
+  status: string;
+  startedAt: string;
+  attempted: number;
+  correct: number;
+  accuracy: number; // 0-100, real per-session accuracy
+  score: { totalScore: number; maxScore: number };
+}
+
 export interface DashboardMetrics {
   overview: StudyMetrics;
   subjectPerformance: SubjectAnalytics[];
   topicPerformance: TopicAnalytics[];
   difficultyPerformance: DifficultyAnalytics[];
-  recentSessions: any[]; // we'll type this properly
+  recentSessions: RecentSessionSummary[];
 }

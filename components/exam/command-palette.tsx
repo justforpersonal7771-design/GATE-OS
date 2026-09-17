@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Search, Moon, Sun, ClipboardList, Bookmark, RefreshCw, 
   PieChart, Calendar, Award, CornerDownLeft, Sparkles, Clock, Trash2

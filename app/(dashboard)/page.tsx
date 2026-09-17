@@ -89,13 +89,12 @@ export default function Home() {
     router.push("/setup");
   };
 
-  const handleRetryExam = async (session: any) => {
-    const { startSession } = useExamRuntimeStore.getState();
-    await startSession({
-      ...session.draftConfig,
-      id: crypto.randomUUID()
-    });
-    router.push("/exam/session");
+  // Past sessions only retain a lightweight summary (id/status/score), not the
+  // original ExamSessionDraft, so "practicing again" can't silently replay the
+  // exact same paper — send the student to Setup to configure a fresh one
+  // instead of spreading a nonexistent draftConfig into a broken session.
+  const handleRetryExam = () => {
+    router.push("/setup");
   };
 
   if (!isInitialized || (loading && !dashboardMetrics)) {

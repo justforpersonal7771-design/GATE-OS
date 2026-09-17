@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { ZoomIn, X, Maximize2 } from "lucide-react";
 
 interface PremiumImageGalleryProps {

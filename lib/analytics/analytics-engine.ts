@@ -21,14 +21,19 @@ export class AnalyticsEngine {
     const difficulties: Record<string, DifficultyAnalytics> = {};
 
     const completedSessions = sessions.filter(s => s.status === "SUBMITTED");
+    const sessionSummaries: Record<string, { attempted: number; correct: number; totalScore: number; maxScore: number }> = {};
 
     completedSessions.forEach(session => {
       const sessionResponses = Object.values(session.responses || {});
-      
+      const sessionStat = { attempted: 0, correct: 0, totalScore: 0, maxScore: 0 };
+      sessionSummaries[session.id] = sessionStat;
+
       sessionResponses.forEach(qContext => {
         const questionId = qContext.questionId;
         const question = QuestionRepository.getQuestion(questionId);
         if (!question) return;
+
+        sessionStat.maxScore += question.marks;
 
         const subject = question.subject;
         const topic = question.topic;
@@ -53,37 +58,37 @@ export class AnalyticsEngine {
           subjects[subject].attempted++;
           topics[topic].attempted++;
           difficulties[difficulty].attempted++;
+          sessionStat.attempted++;
 
-          // Hacky way to check correctness without full evaluation logic here, assuming AnalyticsEngine will do a basic check later or we just assume 0 accuracy if no evaluation is present. Let's do a basic check against the model answer if available.
-          // Since we don't have evaluation results stored in ExamSession yet (not part of requirements), we'll do a simple check.
           let isCorrect = false;
-          // In standard exams, questions have `answer`, `options`. We can evaluate it here or assume 0 for now.
-          // Let's at least mark something.
-          // For now, since evaluation logic might be complex and not strictly in session state:
-          // we will skip checking actual correctness or mock it based on answers if available.
-          
           if (question.question_type === "MCQ" || question.question_type === "MSQ") {
              const correctOptions = (question.options || []).filter(o => o.is_correct).map(o => o.option_id).sort().join(",");
              const userOptions = (qContext.selectedOptions || []).sort().join(",");
              isCorrect = correctOptions === userOptions;
            } else if (question.question_type === "NAT") {
-             // simplified NAT check: match single value or range 
+             // simplified NAT check: match single value or range
              if (question.nat_answer_range && qContext.natValue) {
                const val = parseFloat(qContext.natValue);
                isCorrect = !isNaN(val) && val >= question.nat_answer_range.min && val <= question.nat_answer_range.max;
              }
            }
-          
+
           if (isCorrect) {
             totalCorrect++;
             subjects[subject].correct++;
             topics[topic].correct++;
             difficulties[difficulty].correct++;
+            sessionStat.correct++;
+            sessionStat.totalScore += question.marks;
           } else {
             totalIncorrect++;
             subjects[subject].incorrect++;
             topics[topic].incorrect++;
             difficulties[difficulty].incorrect++;
+            // GATE negative marking applies only to MCQ (see exam/results scoring).
+            if (question.question_type === "MCQ") {
+              sessionStat.totalScore -= question.marks / 3;
+            }
           }
         } else if (isVisited) {
           totalSkipped++;
@@ -118,14 +123,20 @@ export class AnalyticsEngine {
       subjectPerformance: Object.values(subjects),
       topicPerformance: Object.values(topics),
       difficultyPerformance: Object.values(difficulties),
-      recentSessions: sessions.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime()).slice(0, 10).map(s => ({
-        id: s.id,
-        config: { name: "Exam Session" },
-        updatedAt: s.startedAt,
-        status: s.status,
-        startedAt: s.startedAt,
-        score: { totalScore: 0, maxScore: 0 } // mock for now
-      }))
+      recentSessions: sessions.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime()).slice(0, 10).map(s => {
+        const stat = sessionSummaries[s.id];
+        return {
+          id: s.id,
+          config: { name: "Exam Session" },
+          updatedAt: s.startedAt,
+          status: s.status,
+          startedAt: s.startedAt,
+          attempted: stat?.attempted || 0,
+          correct: stat?.correct || 0,
+          accuracy: stat && stat.attempted > 0 ? Math.round((stat.correct / stat.attempted) * 100) : 0,
+          score: { totalScore: stat ? Math.round(stat.totalScore * 100) / 100 : 0, maxScore: stat?.maxScore || 0 },
+        };
+      })
     };
   }
 }

@@ -12,7 +12,7 @@ import { Bookmark, BookmarkCheck, Sun, Moon, ArrowLeft, ArrowRight, Home, Sticky
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { FullscreenNavigation } from "@/components/ui/fullscreen-navigation";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function ReviewPage() {
   const searchParams = useSearchParams();

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { PlayCircle, PlusSquare, BookOpen, AlertOctagon, Bookmark, BarChart3, HelpCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 

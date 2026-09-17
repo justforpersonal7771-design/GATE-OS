@@ -5,7 +5,7 @@ import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
 import { useExamStore } from "@/store/use-exam-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
 import { Clock } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export function ExamTimer() {
   const status = useExamRuntimeStore((state) => state.activeSession?.status);

@@ -4,7 +4,7 @@ import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
 import { useExamStore } from "@/store/use-exam-store";
 import { useCallback, useMemo } from "react";
 import { QuestionRepository } from "@/lib/repository/question-repository";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export function QuestionPalette() {
   const { currentDraft } = useExamStore();

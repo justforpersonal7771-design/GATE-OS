@@ -74,6 +74,14 @@ export default function AnalyticsDashboardPage() {
   const weakTopics = topicsWithAcc.filter(t => t.acc < 50).sort((a,b) => a.acc - b.acc);
   const strongTopics = topicsWithAcc.filter(t => t.acc >= 75).sort((a,b) => b.acc - a.acc);
 
+  const ChartEmptyState = ({ label }: { label: string }) => (
+    <div className="h-full w-full flex flex-col items-center justify-center text-center gap-2">
+      <TrendingUp className="w-8 h-8 text-[var(--text-muted)] opacity-40" />
+      <p className="text-xs font-bold text-[var(--text-secondary)]">No data yet</p>
+      <p className="text-[11px] text-[var(--text-muted)] max-w-[220px]">{label}</p>
+    </div>
+  );
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -90,12 +98,12 @@ export default function AnalyticsDashboardPage() {
     return null;
   };
 
-  const sortedSessions = [...dashboardMetrics.recentSessions].reverse();
+  const sortedSessions = [...dashboardMetrics.recentSessions].filter(s => s.status === "SUBMITTED").reverse();
   const trendData = sortedSessions.map((s, idx) => {
     return {
       session: `S${idx + 1}`,
       score: s.score?.totalScore || 0,
-      accuracy: 50 + (((idx * 17) % 40) + 1), // accuracy trend
+      accuracy: s.accuracy || 0,
     };
   });
 
@@ -227,21 +235,25 @@ export default function AnalyticsDashboardPage() {
             Accuracy Trend (Recent Exams)
           </h3>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-                <XAxis dataKey="session" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: "var(--border)", strokeWidth: 1, strokeDasharray: "4 4" }} />
-                <Area type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAccuracy)" activeDot={{ r: 6, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendData.length === 0 ? (
+              <ChartEmptyState label="Complete a mock test to start tracking your accuracy trend across exams." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+                  <XAxis dataKey="session" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: "var(--border)", strokeWidth: 1, strokeDasharray: "4 4" }} />
+                  <Area type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAccuracy)" activeDot={{ r: 6, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -252,18 +264,22 @@ export default function AnalyticsDashboardPage() {
             Difficulty Analysis
           </h3>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={diffData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="left" orientation="left" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="right" orientation="right" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-                <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px' }} />
-                <Bar yAxisId="left" dataKey="Attempted" name="Questions Solved" fill="#cbd5e1" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar yAxisId="right" dataKey="Accuracy" name="Accuracy %" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
+            {diffData.length === 0 ? (
+              <ChartEmptyState label="Difficulty-wise performance will appear once you attempt questions across difficulty levels." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={diffData}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" orientation="left" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
+                  <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px' }} />
+                  <Bar yAxisId="left" dataKey="Attempted" name="Questions Solved" fill="#cbd5e1" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                  <Bar yAxisId="right" dataKey="Accuracy" name="Accuracy %" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
@@ -275,17 +291,21 @@ export default function AnalyticsDashboardPage() {
           Subject Comparison Dashboard
         </h3>
         <div className="h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={subjectData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} horizontal={false} />
-              <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis dataKey="name" type="category" width={110} stroke="var(--text-muted)" fontSize={9} tickLine={false} axisLine={false} />
-              <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ paddingBottom: '10px', fontSize: '10px' }} />
-              <Bar dataKey="Attempted" name="Attempts" fill="#94a3b8" radius={[0, 4, 4, 0]} maxBarSize={16} />
-              <Bar dataKey="Accuracy" name="Accuracy %" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={16} />
-            </BarChart>
-          </ResponsiveContainer>
+          {subjectData.length === 0 ? (
+            <ChartEmptyState label="Subject-wise comparisons will appear once you complete a mock test or subject-wise practice." />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={subjectData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} horizontal={false} />
+                <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" width={110} stroke="var(--text-muted)" fontSize={9} tickLine={false} axisLine={false} />
+                <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={<CustomTooltip />} />
+                <Legend iconType="circle" wrapperStyle={{ paddingBottom: '10px', fontSize: '10px' }} />
+                <Bar dataKey="Attempted" name="Attempts" fill="#94a3b8" radius={[0, 4, 4, 0]} maxBarSize={16} />
+                <Bar dataKey="Accuracy" name="Accuracy %" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

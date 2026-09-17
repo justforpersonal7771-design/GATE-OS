@@ -17,7 +17,7 @@ import { ExamSubmitDialog } from "@/components/exam/exam-submit-dialog";
 import { ImagePrefetcher } from "@/lib/exam/image-prefetcher";
 import { useTheme } from "next-themes";
 import { SectionTabs } from "@/components/exam/section-tabs";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function ExamSessionPage() {
   const router = useRouter();

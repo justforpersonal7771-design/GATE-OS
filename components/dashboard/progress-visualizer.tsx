@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { PieChart, Trophy, GraduationCap } from "lucide-react";
 
 interface SubjectPerformance {
