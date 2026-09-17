@@ -317,6 +317,23 @@ export class IDBManager {
     await this.setMetadata("calendar_events", JSON.stringify(events));
   }
 
+  // =========== To-Do List Helpers ===========
+  public static async getTodoItems(): Promise<import("@/types/todo.types").TodoItem[]> {
+    const record = await this.getMetadata("todo_items");
+    if (record && record.value) {
+      try {
+        return JSON.parse(record.value as string);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  public static async saveTodoItems(items: import("@/types/todo.types").TodoItem[]): Promise<void> {
+    await this.setMetadata("todo_items", JSON.stringify(items));
+  }
+
   // =========== AI Cache Helpers ===========
   public static async getAIResponse(promptHash: string): Promise<AIResponseRecord | undefined> {
     try {

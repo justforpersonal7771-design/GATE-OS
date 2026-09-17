@@ -13,6 +13,11 @@ export interface CustomTestBlock {
   subject?: string;
   topic?: string;
   count: number;
+  // When true (the default for new blocks), `count` always mirrors however
+  // many questions currently match the block's filters — the block
+  // represents its complete matching pool, per spec. Set to false once the
+  // student manually types a specific count, to respect that override.
+  includeAll?: boolean;
 }
 
 export interface CustomTestTemplate {

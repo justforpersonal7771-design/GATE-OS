@@ -18,6 +18,7 @@ import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { AIPracticeQuestion, AIExplanation } from "@/types/ai.types";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
 import { ConversationMemory } from "@/lib/ai/memory/ConversationMemory";
+import { useToastStore } from "@/store/use-toast-store";
 
 const EXPLAIN_MODES = [
   "Detailed",
@@ -103,10 +104,10 @@ export default function AITutorWorkspace() {
         const notes = res.data.concept + "\n\n" + res.data.steps.join("\n");
         setPersonalNotes(notes);
       } else {
-        alert("Failed to auto-generate notes.");
+        useToastStore.getState().show("Failed to auto-generate notes.", "error");
       }
     } catch {
-      alert("Failed to auto-generate notes.");
+      useToastStore.getState().show("Failed to auto-generate notes.", "error");
     } finally {
       setGeneratingNotes(false);
     }
@@ -311,7 +312,7 @@ export default function AITutorWorkspace() {
       await IDBManager.saveBookmark(updated);
       await loadStudyData();
     }
-    alert("Notes successfully saved to local workspace!");
+    useToastStore.getState().show("Notes successfully saved to local workspace!");
   };
 
   const handleSaveShortcut = async () => {
@@ -329,7 +330,7 @@ export default function AITutorWorkspace() {
       }
     );
     setIsShortcutBookmarked(true);
-    alert("Shortcut trick saved to your Library!");
+    useToastStore.getState().show("Shortcut trick saved to your Library!");
   };
 
   const scrollToCard = (cardKey: string) => {
@@ -786,7 +787,7 @@ export default function AITutorWorkspace() {
                                     <button
                                       onClick={() => {
                                         navigator.clipboard.writeText(form);
-                                        alert("Formula copied to clipboard!");
+                                        useToastStore.getState().show("Formula copied to clipboard!");
                                       }}
                                       className="text-[9px] font-black uppercase text-indigo-500 hover:underline shrink-0"
                                     >

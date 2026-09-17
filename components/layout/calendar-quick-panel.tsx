@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
-import { Calendar, Plus, Play, Check, X, Clock3, ChevronRight, Target } from "lucide-react";
+import { Calendar, Plus, Play, Check, X, Clock3, ChevronRight, ChevronLeft, Target } from "lucide-react";
 import { useCalendarStore } from "@/store/use-calendar-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { toLocalDateStr } from "@/lib/utils";
 import { CalendarEvent } from "@/types/calendar.types";
+
+const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-[var(--surface-secondary)] h-[560px]" />,
+});
 
 const TARGET_EXAM_DATE_KEY = "target_exam_date";
 
@@ -19,6 +25,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
   const [quickType, setQuickType] = useState<CalendarEvent["studyType"]>("Study");
   const [examDate, setExamDate] = useState<string | null>(null);
   const [editingExamDate, setEditingExamDate] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -100,22 +107,43 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.15 }}
-      className="absolute right-0 top-full mt-2 w-[360px] bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50"
+      className={`absolute right-0 top-full mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50 transition-[width] duration-200 ${
+        isExpanded ? "w-[min(820px,calc(100vw-2rem))]" : "w-[360px]"
+      }`}
     >
       {/* Header */}
       <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
+          {isExpanded && (
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="p-1 -ml-1 mr-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer"
+              title="Back to quick view"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+          )}
           <Calendar className="w-4 h-4 text-indigo-500" />
-          <span className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)]">Today&apos;s Plan</span>
+          <span className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)]">
+            {isExpanded ? "Study Planner" : "Today's Plan"}
+          </span>
         </div>
-        <button
-          onClick={() => { onClose(); router.push("/calendar"); }}
-          className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-indigo-500 hover:text-indigo-400 transition-colors cursor-pointer"
-        >
-          Full Planner <ChevronRight className="w-3 h-3" />
-        </button>
+        {!isExpanded && (
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-indigo-500 hover:text-indigo-400 transition-colors cursor-pointer"
+          >
+            Full Planner <ChevronRight className="w-3 h-3" />
+          </button>
+        )}
       </div>
 
+      {isExpanded ? (
+        <div className="p-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+          <StudyPlanner />
+        </div>
+      ) : (
+        <>
       {/* Exam countdown */}
       <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/40 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wide">
@@ -244,6 +272,8 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
           {overdueCount > 0 && <span className="text-rose-500">{overdueCount} Overdue</span>}
           {upcomingCount > 0 && <span className="text-[var(--text-muted)]">{upcomingCount} Upcoming (7d)</span>}
         </div>
+      )}
+        </>
       )}
     </motion.div>
   );

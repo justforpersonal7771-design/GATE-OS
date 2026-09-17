@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { MathJaxContext } from "better-react-mathjax";
+import { useToastStore } from "@/store/use-toast-store";
 
 export default function AIMentorPage() {
   const { mistakes, bookmarks, loadStudyData } = useStudyStore();
@@ -357,7 +358,7 @@ export default function AIMentorPage() {
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(b.aiShortcut || "");
-                              alert("Shortcut trick copied!");
+                              useToastStore.getState().show("Shortcut trick copied!");
                             }}
                             className="text-[9px] font-black uppercase text-indigo-500 hover:underline"
                           >

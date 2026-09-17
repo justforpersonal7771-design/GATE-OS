@@ -14,6 +14,11 @@ const CommandPalette = dynamic(
   { ssr: false }
 );
 
+const ToastContainer = dynamic(
+  () => import("../ui/toast-container").then(m => m.ToastContainer),
+  { ssr: false }
+);
+
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const loadRepository = useDataStore((state) => state.loadRepository);
@@ -52,6 +57,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+        <ToastContainer />
       </div>
     );
   }
@@ -72,6 +78,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+      <ToastContainer />
     </div>
   );
 }
