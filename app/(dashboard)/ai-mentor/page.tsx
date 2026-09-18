@@ -19,6 +19,8 @@ import { MathJaxContext } from "better-react-mathjax";
 import { useToastStore } from "@/store/use-toast-store";
 import { useCalendarStore } from "@/store/use-calendar-store";
 import { AnimatePresence, motion } from "motion/react";
+import { buildStudyReportMarkdown, downloadTextFile } from "@/lib/export/markdown-export";
+import { Download } from "lucide-react";
 
 export default function AIMentorPage() {
   const { mistakes, bookmarks, loadStudyData } = useStudyStore();
@@ -165,6 +167,27 @@ export default function AIMentorPage() {
     useToastStore.getState().show(`"${s.title}" added to your calendar`);
   };
 
+  const handleExportMarkdown = () => {
+    const md = buildStudyReportMarkdown({
+      generatedAt: new Date().toLocaleString(),
+      coachGreeting: coachAdvice.greeting,
+      coachBody: coachAdvice.body,
+      readiness,
+      metrics: {
+        learningVelocity: readiness?.velocityScore ?? 0,
+        spacedRevisionDebt: mistakes.filter(m => !m.mastered).length,
+        burnoutRisk: readiness?.burnoutRisk ?? "Low",
+        daysToExam,
+      },
+      mistakePatterns,
+      savedShortcuts,
+      studyPlanSuggestions,
+      timeline,
+    });
+    downloadTextFile(`gate-os-study-report-${toLocalDateStr()}.md`, md);
+    useToastStore.getState().show("Study report exported as Markdown");
+  };
+
   // Scan and discover mistakes patterns
   useEffect(() => {
     if (!mounted || loading) return;
@@ -284,12 +307,21 @@ export default function AIMentorPage() {
                     <BrainCircuit className="w-3 h-3" />
                     AI Mentor
                   </span>
-                  <button
-                    onClick={() => window.print()}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer shrink-0"
-                  >
-                    Print Report
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleExportMarkdown}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export
+                    </button>
+                    <button
+                      onClick={() => window.print()}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      Print / PDF
+                    </button>
+                  </div>
                 </div>
                 <h1 className="text-xl md:text-2xl font-black tracking-tight">{coachAdvice.greeting}</h1>
                 <p className="text-sm font-semibold leading-relaxed text-indigo-100 max-w-2xl">

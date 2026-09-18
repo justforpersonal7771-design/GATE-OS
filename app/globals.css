@@ -221,3 +221,37 @@
     background-clip: padding-box;
   }
 }
+
+/* Print / "Print / PDF" report stylesheet. Interactive chrome (topbar nav,
+   all buttons, dropdowns) never makes sense on a printed report, so it's
+   hidden globally rather than requiring every page to opt in. Content
+   containers are unlocked from their app-shell scroll/height constraints
+   so the full report flows across as many printed pages as needed. */
+@media print {
+  header:has(nav),
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  html, body {
+    background: white !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .rounded-3xl, .rounded-2xl, .rounded-xl {
+    border-radius: 8px !important;
+  }
+}
