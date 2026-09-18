@@ -9,10 +9,7 @@ import { useStudyStore } from "@/store/use-study-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Clock, Loader2, AlertTriangle, ClipboardList, Bookmark, TrendingUp as TrendingUpIcon,
-  CheckCircle2, Flame, Timer
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // Dynamic imports with Skeleton Loading placeholders to guarantee performance (Part 12)
 const HeroSection = dynamic(() => import("@/components/dashboard/hero-section").then(m => m.HeroSection), {
@@ -43,6 +40,11 @@ const ActivityTimeline = dynamic(() => import("@/components/dashboard/activity-t
 const RecentExams = dynamic(() => import("@/components/dashboard/recent-exams").then(m => m.RecentExams), {
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-[380px] rounded-2xl" />
+});
+
+const MetricsStrip = dynamic(() => import("@/components/dashboard/metrics-strip").then(m => m.MetricsStrip), {
+  ssr: false,
+  loading: () => <div className="skeleton-shimmer h-[170px] rounded-2xl" />
 });
 
 export default function Home() {
@@ -175,39 +177,19 @@ export default function Home() {
       )}
       </AnimatePresence>
 
-      {/* 3. Compact metrics grid — square tiles, deliberately distinct from
-          the hero's Streak/Solved/Accuracy/Mastery/Readiness cards above.
-          Every value here is real and uncapped. */}
-      <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-        {[
-          { label: "Study Hours", value: `${studyHours}h`, icon: Clock, badge: "bg-amber-500/10", iconColor: "text-amber-500", glow: "bg-amber-500", href: "/analytics" },
-          { label: "Weak Topics", value: weakTopicsCount, icon: AlertTriangle, badge: "bg-orange-500/10", iconColor: "text-orange-500", glow: "bg-orange-500", href: "/analytics" },
-          { label: "Strong Topics", value: strongTopicsCount, icon: TrendingUpIcon, badge: "bg-teal-500/10", iconColor: "text-teal-500", glow: "bg-teal-500", href: "/analytics" },
-          { label: "Pending Mistakes", value: pendingMistakesCount, icon: ClipboardList, badge: "bg-rose-500/10", iconColor: "text-rose-500", glow: "bg-rose-500", href: "/mistakes" },
-          { label: "Mastered", value: masteredMistakesCount, icon: CheckCircle2, badge: "bg-emerald-500/10", iconColor: "text-emerald-500", glow: "bg-emerald-500", href: "/mistakes" },
-          { label: "Bookmarks", value: bookmarksCount, icon: Bookmark, badge: "bg-indigo-500/10", iconColor: "text-indigo-500", glow: "bg-indigo-500", href: "/bookmarks" },
-          { label: "Best Streak", value: `${bestStreak}d`, icon: Flame, badge: "bg-pink-500/10", iconColor: "text-pink-500", glow: "bg-pink-500", href: "/analytics" },
-          { label: "Avg Time/Q", value: `${avgTimePerQuestion}s`, icon: Timer, badge: "bg-sky-500/10", iconColor: "text-sky-500", glow: "bg-sky-500", href: "/analytics" },
-        ].map((stat, idx) => (
-          <motion.button
-            key={stat.label}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.03 + idx * 0.03 }}
-            onClick={() => router.push(stat.href)}
-            className="relative aspect-square bg-[var(--surface)] border border-[var(--border)] p-3 rounded-2xl shadow-sm overflow-hidden group hover-lift text-left cursor-pointer flex flex-col justify-between"
-          >
-            <div className={`absolute -top-8 -right-8 w-20 h-20 rounded-full blur-2xl opacity-[0.15] ${stat.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
-            <div className={`relative w-8 h-8 rounded-lg ${stat.badge} flex items-center justify-center`}>
-              <stat.icon className={`w-4 h-4 ${stat.iconColor}`} />
-            </div>
-            <div className="relative">
-              <div className="text-xl font-black text-[var(--text-primary)] font-mono tracking-tight leading-none">{stat.value}</div>
-              <div className="text-[8px] font-black uppercase tracking-wider text-[var(--text-muted)] mt-1.5 leading-tight">{stat.label}</div>
-            </div>
-          </motion.button>
-        ))}
-      </div>
+      {/* 3. Grouped metrics — Study Momentum vs Performance Signals, deliberately
+          distinct from the hero's Streak/Solved/Accuracy/Mastery/Readiness cards
+          above. Every value here is real and uncapped. */}
+      <MetricsStrip
+        studyHours={studyHours}
+        bookmarksCount={bookmarksCount}
+        bestStreak={bestStreak}
+        avgTimePerQuestion={avgTimePerQuestion}
+        weakTopicsCount={weakTopicsCount}
+        strongTopicsCount={strongTopicsCount}
+        pendingMistakesCount={pendingMistakesCount}
+        masteredMistakesCount={masteredMistakesCount}
+      />
 
       {/* 4. Main Two-Column Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">

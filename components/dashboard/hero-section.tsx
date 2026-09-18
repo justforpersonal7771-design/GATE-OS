@@ -34,9 +34,9 @@ export function HeroSection({ streak, solved, accuracy, onNewExam }: HeroSection
       setAnimatedAccuracy(Math.round(accuracy * easeProgress));
 
       if (currentStep >= steps) {
-        setAnimatedStreak(streak);
-        setAnimatedSolved(solved);
-        setAnimatedAccuracy(accuracy);
+        setAnimatedStreak(Math.round(streak));
+        setAnimatedSolved(Math.round(solved));
+        setAnimatedAccuracy(Math.round(accuracy));
         clearInterval(interval);
       }
     }, stepTime);

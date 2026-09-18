@@ -2,14 +2,16 @@ import { motion, AnimatePresence } from "motion/react";
 
 // ... keep icons and other imports
 import { useDataStore } from "@/store/use-data-store";
-import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert, BrainCircuit, Calendar as CalendarIcon, ListTodo } from "lucide-react";
+import { Moon, Sun, Cloud, Database, LayoutDashboard, Settings, BookOpen, PieChart, ClipboardList, Bookmark, RefreshCw, Menu, X, ShieldAlert, BrainCircuit, Calendar as CalendarIcon, ListTodo, Target } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarQuickPanel } from "./calendar-quick-panel";
 import { TodoQuickPanel } from "./todo-quick-panel";
+import { GoalSliderPanel } from "./goal-slider-panel";
 import { useToastStore } from "@/store/use-toast-store";
+import { useGoalSliderStore, GOAL_SLIDER_DEFAULT_PERCENT } from "@/store/use-goal-slider-store";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -35,6 +37,12 @@ export function Topbar() {
   const calendarRef = useRef<HTMLDivElement>(null);
   const [isTodoOpen, setIsTodoOpen] = useState(false);
   const todoRef = useRef<HTMLDivElement>(null);
+  const [isGoalSliderOpen, setIsGoalSliderOpen] = useState(false);
+  const { targetPercent, load: loadGoalSlider } = useGoalSliderStore();
+
+  useEffect(() => {
+    loadGoalSlider();
+  }, [loadGoalSlider]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -108,6 +116,7 @@ export function Topbar() {
   };
 
   return (
+    <>
     <header className="h-16 relative bg-[var(--background)]/85 backdrop-blur-md sticky top-0 z-40 transition-colors">
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--border)] to-transparent" />
       <div className="w-full h-full px-4 sm:px-6 md:px-8 flex items-center justify-between">
@@ -222,6 +231,22 @@ export function Topbar() {
                 </AnimatePresence>
              </div>
 
+             <button
+                onClick={() => setIsGoalSliderOpen(true)}
+                className={`relative p-2 rounded-lg transition-colors cursor-pointer ${
+                  targetPercent < GOAL_SLIDER_DEFAULT_PERCENT
+                    ? "text-white bg-indigo-600 shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]"
+                }`}
+                aria-label="AI Goal Slider"
+                title="AI Goal Slider"
+             >
+                <Target className="w-4 h-4" />
+                {targetPercent < GOAL_SLIDER_DEFAULT_PERCENT && (
+                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-[var(--surface)]" />
+                )}
+             </button>
+
              <div className="w-px h-5 bg-[var(--border)] mx-0.5" />
 
              <button
@@ -291,5 +316,10 @@ export function Topbar() {
         )}
       </AnimatePresence>
     </header>
+
+    <AnimatePresence>
+      {isGoalSliderOpen && <GoalSliderPanel onClose={() => setIsGoalSliderOpen(false)} />}
+    </AnimatePresence>
+    </>
   );
 }
