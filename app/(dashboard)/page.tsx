@@ -10,7 +10,7 @@ import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Target, Clock, Flame, Loader2, TrendingUp
+  Clock, Loader2, AlertTriangle, ClipboardList, Bookmark
 } from "lucide-react";
 
 // Dynamic imports with Skeleton Loading placeholders to guarantee performance (Part 12)
@@ -113,6 +113,13 @@ export default function Home() {
   const studyHours = overview?.totalTimeSpentMs ? Math.round(overview.totalTimeSpentMs / 1000 / 3600) : 0;
   const streakDays = overview?.currentStreak || 0;
 
+  // These four are deliberately NOT a repeat of the hero's Streak/Solved/
+  // Accuracy/Mastery/Readiness cards above — each one below surfaces
+  // information the hero doesn't, so the two rows stay non-redundant.
+  const pendingMistakesCount = mistakes.filter(m => !m.mastered).length;
+  const weakTopicsCount = (dashboardMetrics?.topicPerformance || [])
+    .filter(t => t.attempted >= 1 && (t.correct / t.attempted) * 100 < 50).length;
+
   return (
     <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8 bg-[var(--background)] min-h-screen">
       
@@ -165,20 +172,24 @@ export default function Home() {
       )}
       </AnimatePresence>
 
-      {/* 3. Premium Analytics Metrics Row Grid (Part 7) */}
+      {/* 3. Action-oriented metrics row — deliberately distinct from the hero's
+          Streak/Solved/Accuracy/Mastery/Readiness cards above, each one here
+          is something the hero doesn't show and links straight to where you'd
+          act on it. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Practice Accuracy", value: `${accuracyValue.toFixed(1)}%`, icon: TrendingUp, badge: "bg-emerald-500/10", iconColor: "text-emerald-500", glow: "bg-emerald-500" },
-          { label: "Questions Solved", value: solvedCount, icon: Target, badge: "bg-indigo-500/10", iconColor: "text-indigo-500", glow: "bg-indigo-500" },
-          { label: "Study Hours", value: `${studyHours} hrs`, icon: Clock, badge: "bg-amber-500/10", iconColor: "text-amber-500", glow: "bg-amber-500" },
-          { label: "Active Streak", value: `${streakDays} days`, icon: Flame, badge: "bg-rose-500/10", iconColor: "text-rose-500 fill-rose-500 stroke-none", glow: "bg-rose-500" },
+          { label: "Study Hours", value: `${studyHours} hrs`, icon: Clock, badge: "bg-amber-500/10", iconColor: "text-amber-500", glow: "bg-amber-500", href: "/analytics" },
+          { label: "Weak Topics", value: weakTopicsCount, icon: AlertTriangle, badge: "bg-orange-500/10", iconColor: "text-orange-500", glow: "bg-orange-500", href: "/analytics" },
+          { label: "Pending Mistakes", value: pendingMistakesCount, icon: ClipboardList, badge: "bg-rose-500/10", iconColor: "text-rose-500", glow: "bg-rose-500", href: "/mistakes" },
+          { label: "Bookmarks Saved", value: bookmarksCount, icon: Bookmark, badge: "bg-indigo-500/10", iconColor: "text-indigo-500", glow: "bg-indigo-500", href: "/bookmarks" },
         ].map((stat, idx) => (
-          <motion.div
+          <motion.button
             key={stat.label}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 + idx * 0.05 }}
-            className="relative bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm overflow-hidden group hover-lift"
+            onClick={() => router.push(stat.href)}
+            className="relative bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm overflow-hidden group hover-lift text-left cursor-pointer"
           >
             <div className={`absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl opacity-[0.15] ${stat.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
             <div className={`relative w-10 h-10 rounded-xl ${stat.badge} flex items-center justify-center mb-4`}>
@@ -186,7 +197,7 @@ export default function Home() {
             </div>
             <div className="relative text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{stat.value}</div>
             <div className="relative text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1.5">{stat.label}</div>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
 
