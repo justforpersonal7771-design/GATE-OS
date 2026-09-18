@@ -4,18 +4,20 @@ import { useEffect, useState, useMemo } from "react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { MemoryEngine, KnowledgeGraph, InsightMemory, MistakePattern, LearnerTimelineMilestone, ReadinessScorecard } from "@/lib/ai/memory/MemoryEngine";
+import { StudyPlanEngine, StudyPlanSuggestion } from "@/lib/ai/memory/StudyPlanEngine";
 import { MasteryEngine, TopicMastery } from "@/lib/learning/MasteryEngine";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { toLocalDateStr } from "@/lib/utils";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
-import { 
-  Sparkles, Loader2, BrainCircuit, Activity, Clock, Zap, Star, AlertTriangle, 
-  HelpCircle, ShieldCheck, TrendingUp, Calendar, BookOpen, Layers, CheckCircle2, Flame, Award
+import {
+  Sparkles, Loader2, BrainCircuit, Activity, Clock, Zap, Star, AlertTriangle,
+  HelpCircle, ShieldCheck, TrendingUp, Calendar, BookOpen, Layers, CheckCircle2, Flame, Award, CalendarPlus, Check
 } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { MathJaxContext } from "better-react-mathjax";
 import { useToastStore } from "@/store/use-toast-store";
+import { useCalendarStore } from "@/store/use-calendar-store";
 import { AnimatePresence, motion } from "motion/react";
 
 export default function AIMentorPage() {
@@ -39,6 +41,12 @@ export default function AIMentorPage() {
   const [plannerCompletion, setPlannerCompletion] = useState<number | null>(null);
   const [examDate, setExamDate] = useState<string | null>(null);
 
+  // AI Study Planner — rule-based recommendations (see StudyPlanEngine),
+  // never auto-added to the calendar; the student must click to add each one.
+  const [studyPlanSuggestions, setStudyPlanSuggestions] = useState<StudyPlanSuggestion[]>([]);
+  const [addedSuggestionIds, setAddedSuggestionIds] = useState<Set<string>>(new Set());
+  const { addEvent: addCalendarEvent, events: calendarEvents, loadEvents: loadCalendarEvents } = useCalendarStore();
+
   useEffect(() => {
     setMounted(true);
     const loadMentorData = async () => {
@@ -46,12 +54,13 @@ export default function AIMentorPage() {
       await loadStudyData();
       await refreshAnalytics();
       await MemoryEngine.initialize();
+      await loadCalendarEvents();
       const rec = await IDBManager.getMetadata("target_exam_date");
       if (rec?.value) setExamDate(String(rec.value));
       setLoading(false);
     };
     loadMentorData();
-  }, [loadStudyData, refreshAnalytics]);
+  }, [loadStudyData, refreshAnalytics, loadCalendarEvents]);
 
   const daysToExam = examDate
     ? Math.round((new Date(examDate + "T00:00:00").getTime() - new Date(toLocalDateStr() + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24))
@@ -120,6 +129,41 @@ export default function AIMentorPage() {
     );
     setReadiness(pred);
   }, [mounted, loading, subjectMasteries, mistakes, bookmarks, dashboardMetrics, plannerCompletion]);
+
+  // AI Study Planner — recompute suggestions once real mastery/readiness/
+  // calendar data is available. Purely rule-based (see StudyPlanEngine),
+  // no AI API call involved.
+  useEffect(() => {
+    if (!mounted || loading || !readiness || Object.keys(topicMasteryMap).length === 0) return;
+    const suggestions = StudyPlanEngine.generateSuggestions({
+      mistakes,
+      topicMasteryMap,
+      burnoutRisk: readiness.burnoutRisk,
+      existingEvents: calendarEvents,
+    });
+    setStudyPlanSuggestions(suggestions);
+  }, [mounted, loading, readiness, topicMasteryMap, mistakes, calendarEvents]);
+
+  const handleAddSuggestionToCalendar = async (s: StudyPlanSuggestion) => {
+    await addCalendarEvent({
+      id: crypto.randomUUID(),
+      title: s.title,
+      description: s.reason,
+      category: s.studyType === "Revision" ? "Revision" : s.studyType === "Mistakes" ? "Mistakes Review" : s.studyType === "Mock Test" ? "Mock Test" : "Study",
+      date: s.suggestedDate,
+      color: s.priority === "High" ? "#f43f5e" : s.priority === "Medium" ? "#f59e0b" : "#6366f1",
+      priority: s.priority,
+      completed: false,
+      subject: s.subject,
+      topic: s.topic,
+      studyType: s.studyType,
+      timeRangeType: "date_only",
+      revisionCycle: "One Time",
+      status: "Pending",
+    });
+    setAddedSuggestionIds(prev => new Set(prev).add(s.id));
+    useToastStore.getState().show(`"${s.title}" added to your calendar`);
+  };
 
   // Scan and discover mistakes patterns
   useEffect(() => {
@@ -280,6 +324,68 @@ export default function AIMentorPage() {
               )}
             </div>
           </motion.div>
+
+          {/* AI Study Planner — rule-based recommendations derived from real
+              revision-priority/mastery/burnout data; opt-in only, nothing is
+              ever written to the calendar without an explicit click here. */}
+          {studyPlanSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                <div>
+                  <h3 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                    <CalendarPlus className="w-4 h-4 text-indigo-500" />
+                    AI Study Plan Suggestions
+                  </h3>
+                  <p className="text-[11px] font-semibold text-[var(--text-muted)] mt-0.5">Derived from your real revision priority and mistake data. Nothing is added to your calendar unless you click.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {studyPlanSuggestions.map((s, idx) => {
+                  const isAdded = addedSuggestionIds.has(s.id);
+                  return (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="bg-[var(--surface-secondary)]/50 border border-[var(--border-subtle)] rounded-xl p-4 space-y-2.5 flex flex-col justify-between"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
+                            s.priority === "High" ? "bg-rose-500/10 text-rose-500" :
+                            s.priority === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                            "bg-indigo-500/10 text-indigo-500"
+                          }`}>{s.priority} Priority</span>
+                          <span className="text-[9px] font-bold text-[var(--text-muted)] font-mono">{s.suggestedDate}</span>
+                        </div>
+                        <h4 className="font-extrabold text-xs text-[var(--text-primary)] leading-snug">{s.title}</h4>
+                        <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">{s.reason}</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.96 }}
+                        disabled={isAdded}
+                        onClick={() => handleAddSuggestionToCalendar(s)}
+                        className={`w-full flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition cursor-pointer ${
+                          isAdded
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-default"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                        }`}
+                      >
+                        {isAdded ? <><Check className="w-3.5 h-3.5" /> Added to Calendar</> : <><CalendarPlus className="w-3.5 h-3.5" /> Add to Calendar</>}
+                      </motion.button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
