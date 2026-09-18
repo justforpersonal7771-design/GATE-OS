@@ -59,6 +59,19 @@ export default function RevisionBuilderPage() {
     });
   }, [dashboardMetrics]);
 
+  // The engine builds one blended queue (mistakes + bookmarks); selecting a mode here must
+  // actually filter it, not just re-style the selector cards while the table stays static.
+  const filteredRevisionQueue = useMemo(() => {
+    if (!intel) return [];
+    if (mode === "mistakes") return intel.revisionQueue.filter(item => item.type === "Mistake");
+    if (mode === "bookmarks") return intel.revisionQueue.filter(item => item.type === "Bookmark");
+    if (mode === "weak_topics") {
+      const weakTopicNames = new Set(weakTopics.map(t => t.topic));
+      return intel.revisionQueue.filter(item => weakTopicNames.has(item.question.topic));
+    }
+    return intel.revisionQueue;
+  }, [intel, mode, weakTopics]);
+
   if (!mounted) {
     return (
       <div className="flex h-screen items-center justify-center bg-[var(--background)]">
@@ -202,7 +215,7 @@ export default function RevisionBuilderPage() {
                 <div>
                   <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Estimated Queue Review Time</span>
                   <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-0.5">
-                    {intel.revisionQueue.reduce((acc, q) => acc + q.estimatedTimeMin, 0)} Minutes
+                    {filteredRevisionQueue.reduce((acc, q) => acc + q.estimatedTimeMin, 0)} Minutes
                   </span>
                   <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">Required time to resolve all pending high-priority review tasks.</p>
                 </div>
@@ -271,7 +284,7 @@ export default function RevisionBuilderPage() {
             </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
-              {!loadingIntel && intel && intel.revisionQueue.length > 0 ? (
+              {!loadingIntel && intel && filteredRevisionQueue.length > 0 ? (
                 <table className="w-full text-xs text-left min-w-[700px]">
                   <thead className="text-[9px] font-black uppercase bg-[var(--surface-secondary)] text-[var(--text-muted)] border-b border-[var(--border-subtle)] sticky top-0 z-10">
                     <tr>
@@ -285,7 +298,7 @@ export default function RevisionBuilderPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {intel.revisionQueue.map((item, idx) => (
+                    {filteredRevisionQueue.map((item, idx) => (
                       <motion.tr
                         key={item.id}
                         initial={{ opacity: 0 }}

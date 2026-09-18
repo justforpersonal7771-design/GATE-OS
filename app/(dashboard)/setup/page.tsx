@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDataStore } from "@/store/use-data-store";
 import { useExamStore } from "@/store/use-exam-store";
 import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
@@ -26,6 +26,8 @@ const mathJaxConfig = {
 
 export default function ExamSetupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkAppliedRef = useRef(false);
   const { isInitialized, totalQuestions } = useDataStore();
   const { createDraft, currentDraft } = useExamStore();
   const { targetPercent: goalTargetPercent, load: loadGoalSlider } = useGoalSliderStore();
@@ -232,12 +234,32 @@ export default function ExamSetupPage() {
       setAvailableTopics(topics.sort());
       setAvailableSections(sections.sort());
 
+      // Deep-link from Dashboard's Today's Focus cards (?subject=X or ?topic=Y) — applied
+      // once, so it pre-selects the right dropdown instead of silently landing on a blank
+      // Setup page. Only consumed on the very first load of this effect.
+      const topicParam = !deepLinkAppliedRef.current ? searchParams.get("topic") : null;
+      const subjectParam = !deepLinkAppliedRef.current ? searchParams.get("subject") : null;
+      deepLinkAppliedRef.current = true;
+
+      const topicOwnerSubject = topicParam ? allQs.find(q => q.topic === topicParam)?.subject : undefined;
+
+      if (topicParam && topics.includes(topicParam)) {
+        setExamType("TOPIC_TEST");
+        setSelectedSubject(topicOwnerSubject && subjects.includes(topicOwnerSubject) ? topicOwnerSubject : (subjects[0] || ""));
+        setSelectedTopic(topicParam);
+      } else if (subjectParam && subjects.includes(subjectParam)) {
+        setExamType("SUBJECT_TEST");
+        setSelectedSubject(subjectParam);
+        setSelectedTopic(topics.length > 0 ? topics[0] : "");
+      } else {
+        setSelectedSubject(subjects.length > 0 ? subjects[0] : "");
+        setSelectedTopic(topics.length > 0 ? topics[0] : "");
+      }
+
       setSelectedPaper(papers.length > 0 ? papers[0] : "");
-      setSelectedSubject(subjects.length > 0 ? subjects[0] : "");
-      setSelectedTopic(topics.length > 0 ? topics[0] : "");
       setSelectedSection(sections.length > 0 ? sections[0] : "");
     }
-  }, [isInitialized, sourceType, totalQuestions]);
+  }, [isInitialized, sourceType, totalQuestions, searchParams]);
 
   useEffect(() => {
     if (isInitialized && selectedSubject && (examType === "TOPIC_TEST" || examType === "SUBJECT_TEST")) {
@@ -262,11 +284,14 @@ export default function ExamSetupPage() {
         count = repo.getQuestionsBySection(selectedSection).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
       }
       setMaxAvailable(count);
-      if (questionCount > count && count > 0) {
-         setQuestionCount(count);
+      // Default Volume to the full available pool whenever the scope changes (subject/topic/
+      // section switch) — the student can still dial it down manually afterward.
+      if (count > 0) {
+        setQuestionCount(count);
       }
     }
-  }, [examType, selectedSubject, selectedTopic, selectedSection, isInitialized, questionCount, sourceType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examType, selectedSubject, selectedTopic, selectedSection, isInitialized, sourceType]);
 
   const handleGenerate = () => {
     const config: TestConfig = { 

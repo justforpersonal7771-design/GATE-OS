@@ -14,9 +14,9 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 - [ ] Markdown pipe-table syntax renders as raw `| a | b |` text instead of an HTML table (FSM tokenizer/parser gap, not a rendering bug — confirmed on `GATE_CS_2025_AN_Q8` and ~2 other questions). *(carry-over, unresolved)*
 - [ ] Math expressions / regex-like content / markdown not formatting correctly in the AI Generated section. *(AI Generated #1)*
 - [ ] Personal Notes and Workspace Notes markdown doesn't render — should feel like a WhatsApp/Telegram-style rich text box; fix must be applied consistently everywhere notes are edited. *(Bookmarks #2, #8)*
-- [ ] Today's Focus card is not dynamic — clicking a weak-subject recommendation just navigates to Setup without pre-selecting that subject in the dropdown (should launch straight into a configured test). Same for other Focus Center recommendations. *(Dashboard #7)*
-- [ ] Recent Mock Tests don't store what the test actually was — "Practice Again" should either replay the same config or drill down (`>`) into full details before launching, not lose the context. *(Dashboard #7 cont.)*
-- [ ] Revision page: changing the revision-parameter selection (Mistakes/Bookmarks/Weak Topics/AI Insights) doesn't actually change the Dynamic Revision Queue contents. *(Revision #1)*
+- [x] Today's Focus card is not dynamic — Setup page never read the `?subject=`/`?topic=` query params Focus Center was already sending; now pre-selects Deployment Type + Target Subject/Topic correctly. Verified with real deep-links.
+- [x] Recent Mock Tests don't store what the test actually was — `RecentSessionSummary.config` was hardcoded to `{name: "Exam Session"}`; now carries the real `TestConfig`, shows a working drill-down, and "Practice Again" relaunches the identical config. Verified end-to-end.
+- [x] Revision page: changing the revision-parameter selection didn't change the Dynamic Revision Queue — `getPersonalizedIntelligence()` always builds one blended queue regardless of mode; now filtered client-side by `item.type`/topic membership per selected mode.
 
 ## P1 — High (major UX breakage, mobile compatibility, consistency)
 
@@ -41,7 +41,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 - [ ] Add a "days left to GATE 2027" display and a dedicated card showing scheduled tests/dates/priorities (pulling from the Calendar data). *(Dashboard #9)*
 
 **Exam Engine — Standard GATE (Setup)**
-- [ ] Configuration Engine: default the question-count/"Volume" field to the max available, not a small default. *(A1)*
+- [x] Configuration Engine: Volume now defaults to the max available whenever subject/topic/section scope changes. *(A1)*
 - [ ] Generated Blueprint: hide the raw draft ID; redesign the question-type/count breakdown to look intentional, not a plain list. *(A2)*
 - [ ] Add color coding to the marks/questions summary on the Generated Blueprint. *(A3)*
 - [ ] Generated Blueprint layout should be fixed-height with only its internal sections scrolling, not the whole page. *(A4)*
