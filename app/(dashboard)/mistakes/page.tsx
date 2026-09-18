@@ -18,16 +18,6 @@ import { PersonalNotesDrawer } from "@/components/ui/personal-notes-drawer";
 import { FullscreenNavigation } from "@/components/ui/fullscreen-navigation";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 
-const ERROR_CATEGORIES = [
-  "Concept Error",
-  "Calculation Error",
-  "Guess",
-  "Time Pressure",
-  "Reading Error",
-  "Silly Mistake",
-  "Confidence Error"
-] as const;
-
 export default function MistakesPage() {
   const router = useRouter();
   const { isInitialized } = useDataStore();
@@ -36,7 +26,6 @@ export default function MistakesPage() {
   const [activeMistake, setActiveMistake] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string>("ALL");
   const [filterTopic, setFilterTopic] = useState<string>("ALL");
-  const [filterCategory, setFilterCategory] = useState<string>("ALL");
   const [showMastered, setShowMastered] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
@@ -46,9 +35,6 @@ export default function MistakesPage() {
   const [userSelected, setUserSelected] = useState<string[]>([]);
   const [userNatValue, setUserNatValue] = useState<string>("");
   const [validationOutcome, setValidationOutcome] = useState<"correct" | "incorrect" | null>(null);
-
-  // Editors for the active mistake item
-  const [confidenceSlider, setConfidenceSlider] = useState(50);
 
   useEffect(() => {
     loadStudyData();
@@ -76,26 +62,17 @@ export default function MistakesPage() {
     setValidationOutcome(null);
   }, [activeMistake]);
 
-  // Sync confidence slider when active mistake changes
   const activeEntry = activeMistake ? mistakes.find(m => m.questionId === activeMistake) : null;
-  useEffect(() => {
-    if (activeEntry) {
-      setConfidenceSlider(activeEntry.confidence || 50);
-    }
-  }, [activeMistake, activeEntry]);
 
   // Handle active entry updates directly in DB
   const handleUpdateMistakeMeta = async (qid: string, updates: Partial<typeof mistakes[0]>) => {
     const target = mistakes.find(m => m.questionId === qid);
     if (!target) return;
 
-    // Calculate dynamic mastery score (0-100) based on confidence & retry status
+    // Calculate dynamic mastery score (0-100) based on retry status
     let mastery = target.mastery || 0;
     if (updates.mastered !== undefined) {
       mastery = updates.mastered ? 100 : 30;
-    }
-    if (updates.confidence !== undefined) {
-      mastery = Math.round((updates.confidence * 0.7) + ((target.solvedCount || 0) > 0 ? 30 : 0));
     }
 
     const updated = {
@@ -206,30 +183,6 @@ export default function MistakesPage() {
     return Array.from(uniq).sort();
   }, [mistakes, filterSubject, showMastered]);
 
-  // Dropdown options with nested occurrence metrics
-  const categoryOptions = useMemo(() => {
-    const list = [
-      { label: "All Error Categories", value: "ALL", subLabel: `Total: ${mistakes.filter(m => m.mastered === showMastered).length} mistakes` }
-    ];
-    ERROR_CATEGORIES.forEach(cat => {
-      const filtered = mistakes.filter(m => m.category === cat && m.mastered === showMastered);
-      const count = filtered.length;
-      const occurrences = filtered.reduce((acc, m) => acc + (m.occurrences || 1), 0);
-      list.push({
-        label: cat,
-        value: cat,
-        subLabel: `${count} mistakes • ${occurrences} occurrences`
-      });
-    });
-    const unclassifiedFiltered = mistakes.filter(m => !m.category && m.mastered === showMastered);
-    list.push({
-      label: "Unclassified",
-      value: "Unclassified",
-      subLabel: `${unclassifiedFiltered.length} mistakes • ${unclassifiedFiltered.reduce((acc, m) => acc + (m.occurrences || 1), 0)} occurrences`
-    });
-    return list;
-  }, [mistakes, showMastered]);
-
   const subjectOptions = useMemo(() => {
     const list = [
       { label: "All Subjects", value: "ALL", subLabel: `Total: ${mistakes.filter(m => m.mastered === showMastered).length} mistakes` }
@@ -270,7 +223,6 @@ export default function MistakesPage() {
       if (m.mastered !== showMastered) return false;
       if (filterSubject !== "ALL" && m.subject !== filterSubject) return false;
       if (filterTopic !== "ALL" && m.topic !== filterTopic) return false;
-      if (filterCategory !== "ALL" && (m.category || "Unclassified") !== filterCategory) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         return (
@@ -281,7 +233,7 @@ export default function MistakesPage() {
       }
       return true;
     });
-  }, [mistakes, filterSubject, filterTopic, filterCategory, showMastered, searchQuery]);
+  }, [mistakes, filterSubject, filterTopic, showMastered, searchQuery]);
 
   const question = activeEntry ? QuestionRepository.getQuestionById(activeEntry.questionId) : null;
   const activeIndex = filteredMistakes.findIndex(m => m.questionId === activeMistake);
@@ -293,9 +245,6 @@ export default function MistakesPage() {
   const handleNext = activeIndex < filteredMistakes.length - 1 ? () => {
     setActiveMistake(filteredMistakes[activeIndex + 1].questionId);
   } : undefined;
-
-  // Dropdown mapping for Classify selector in workspace header
-  const classifyOptions = ERROR_CATEGORIES.map(cat => ({ label: cat, value: cat }));
 
   if (!isInitialized) {
     return (
@@ -360,14 +309,6 @@ export default function MistakesPage() {
 
             {/* Compact Custom Dropdowns with Occurrence Indicators */}
             <div className="space-y-2 pt-1">
-              <CustomDropdown
-                value={filterCategory}
-                onChange={setFilterCategory}
-                options={categoryOptions}
-                placeholder="Error Category"
-                className="text-xs w-full font-semibold"
-              />
-
               <CustomDropdown
                 value={filterSubject}
                 onChange={setFilterSubject}
@@ -460,35 +401,9 @@ export default function MistakesPage() {
                     <h3 className="font-extrabold text-[var(--text-primary)] text-sm tracking-tight">Mistake Review</h3>
                     <span className="text-[11px] text-[var(--text-muted)] font-semibold block">{question.subject} • {question.topic}</span>
                   </div>
-
-                  {/* Confidence meter slider located right next to title */}
-                  <div className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-lg shadow-sm">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] shrink-0">
-                      Conf: <span className="text-indigo-500 font-bold font-mono">{confidenceSlider}%</span>
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={confidenceSlider}
-                      onChange={(e) => setConfidenceSlider(Number(e.target.value))}
-                      onMouseUp={() => handleUpdateMistakeMeta(activeMistake, { confidence: confidenceSlider })}
-                      onTouchEnd={() => handleUpdateMistakeMeta(activeMistake, { confidence: confidenceSlider })}
-                      className="w-14 sm:w-20 accent-indigo-500 cursor-pointer h-1 rounded bg-[var(--border-subtle)]"
-                    />
-                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Modern CustomDropdown for category classification selector */}
-                  <CustomDropdown
-                    value={activeEntry.category || "Unclassified"}
-                    onChange={(val) => handleUpdateMistakeMeta(activeMistake, { category: val as any })}
-                    options={classifyOptions}
-                    placeholder="Classify Error"
-                    className="text-xs w-40 font-bold"
-                  />
-
                   {/* Bookmark Toggle */}
                   <button
                     onClick={handleToggleBookmark}
@@ -563,19 +478,6 @@ export default function MistakesPage() {
                   <div className="text-lg md:text-xl font-medium leading-relaxed text-[var(--text-primary)] mb-8">
                     <AstNodeRenderer nodes={question.contentAst} />
                   </div>
-
-                  {/* AI insights panel */}
-                  {(activeEntry.confidence !== undefined || activeEntry.mastery !== undefined) && (
-                    <div className="mt-8 p-4 bg-rose-500/5 border border-rose-500/20 rounded-xl space-y-3">
-                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4" />
-                        AI Diagnostic Recommendation
-                      </h4>
-                      <p className="text-xs font-semibold text-[var(--text-secondary)] leading-relaxed">
-                        Based on your confidence level of {activeEntry.confidence || 50}% and mastery index of {activeEntry.mastery || 0}%, we recommend revising the core theorems for this question in the AI Tutor.
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Options / NAT input - Option Validation View */}

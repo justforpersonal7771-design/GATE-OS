@@ -12,6 +12,15 @@ import { Settings, Play, ServerCog, Target, FileText, CheckCircle2, Sparkles, Ch
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { motion, AnimatePresence } from "motion/react";
+import { MathJaxContext } from "better-react-mathjax";
+
+const mathJaxConfig = {
+  loader: { load: ["input/tex", "output/chtml"] },
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+  },
+};
 
 export default function ExamSetupPage() {
   const router = useRouter();
@@ -318,9 +327,10 @@ export default function ExamSetupPage() {
 
 
   return (
+    <MathJaxContext config={mathJaxConfig}>
     <div className="w-full flex justify-center pb-12">
       <div className="w-full flex flex-col gap-6">
-        
+
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -956,5 +966,6 @@ export default function ExamSetupPage() {
 
       </div>
     </div>
+    </MathJaxContext>
   );
 }

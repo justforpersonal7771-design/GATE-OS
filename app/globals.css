@@ -93,8 +93,8 @@
     --accent-hover: #27272a;
     --accent-foreground: #ffffff;
     
-    --scrollbar-thumb: #d1d5db;
-    --scrollbar-track: transparent;
+    --scrollbar-thumb: #a1a1aa;
+    --scrollbar-track: #f4f4f5;
 
     /* Exam specific elements */
     --question-surface: #ffffff;
@@ -141,8 +141,8 @@
     --accent-hover: #e4e4e7;
     --accent-foreground: #000000;
 
-    --scrollbar-thumb: #3f3f46;
-    --scrollbar-track: transparent;
+    --scrollbar-thumb: #52525b;
+    --scrollbar-track: #18181b;
   }
 
   * {
@@ -157,10 +157,10 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  /* Premium Scrollbar */
+  /* Premium Scrollbar — clearly visible in both themes, not just a hover-only hint */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
@@ -170,12 +170,15 @@
   ::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
     border-radius: 9999px;
+    border: 2px solid var(--scrollbar-track);
+    background-clip: padding-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-muted);
+    background-color: var(--text-secondary);
+    background-clip: padding-box;
   }
-  
+
   /* Question Image Adaptation for Dark Mode */
   .dark .question-image {
     filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(1.1);
@@ -185,13 +188,28 @@
      transition: filter 0.3s ease;
   }
 
-  /* Custom Syntax Highlighting adjustments for dark mode if needed */
+  /* Scoped scrollbar for inner panels (sidebars, chat logs, code blocks) —
+     same visibility as the page scrollbar but slimmer to fit tight columns. */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
   .custom-scrollbar::-webkit-scrollbar {
-    height: 4px;
-    width: 4px;
+    height: 8px;
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 2px;
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    border: 2px solid var(--scrollbar-track);
+    background-clip: padding-box;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-secondary);
+    background-clip: padding-box;
   }
 }

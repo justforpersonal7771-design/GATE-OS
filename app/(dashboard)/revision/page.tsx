@@ -13,6 +13,15 @@ import { LearningEngine, PersonalizedIntelligence } from "@/lib/learning/Learnin
 import { AdaptiveRevisionItem } from "@/lib/learning/AdaptiveEngine";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
+import { MathJaxContext } from "better-react-mathjax";
+
+const mathJaxConfig = {
+  loader: { load: ["input/tex", "output/chtml"] },
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+  },
+};
 
 export default function RevisionBuilderPage() {
   const router = useRouter();
@@ -73,8 +82,9 @@ export default function RevisionBuilderPage() {
   };
 
   return (
+    <MathJaxContext config={mathJaxConfig}>
     <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8 bg-[var(--background)] font-sans">
-      
+
       {/* Title */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
@@ -327,5 +337,6 @@ export default function RevisionBuilderPage() {
           )}
       </div>
     </div>
+    </MathJaxContext>
   );
 }

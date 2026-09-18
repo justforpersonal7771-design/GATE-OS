@@ -108,35 +108,36 @@ export function Topbar() {
   };
 
   return (
-    <header className="h-16 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-40 transition-colors">
+    <header className="h-16 relative bg-[var(--background)]/85 backdrop-blur-md sticky top-0 z-40 transition-colors">
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--border)] to-transparent" />
       <div className="w-full h-full px-4 sm:px-6 md:px-8 flex items-center justify-between">
-        
+
         {/* Logo and Desktop Nav */}
         <div className="flex items-center gap-8 h-full">
-          <Link href="/" className="font-bold text-xl text-[var(--accent)] shrink-0 flex items-center gap-2 group">
-             <div className="w-8 h-8 rounded-lg bg-[var(--accent)] text-[var(--background)] flex items-center justify-center transition-transform group-hover:scale-105 group-hover:rotate-3 shadow-md">
+          <Link href="/" className="font-black text-xl text-[var(--text-primary)] shrink-0 flex items-center gap-2.5 group">
+             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center transition-transform group-hover:scale-105 group-hover:rotate-3 shadow-lg shadow-indigo-600/30">
                 G
              </div>
-             GATE OS
+             <span className="hidden sm:inline">GATE OS</span>
           </Link>
-          
-          <nav className="hidden lg:flex items-center h-full gap-2 relative">
+
+          <nav className="hidden lg:flex items-center h-full gap-1 relative">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex items-center gap-2 px-3 py-2 rounded-md font-medium text-sm transition-colors z-10 ${
+                  className={`relative flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold text-sm transition-colors z-10 ${
                     isActive
-                      ? "text-[var(--text-primary)]"
+                      ? "text-white"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="topbar-active-pill"
-                      className="absolute inset-0 bg-[var(--surface-secondary)] rounded-md border border-[var(--border-subtle)] -z-10 shadow-sm"
+                      className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg -z-10 shadow-md shadow-indigo-600/25"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -182,14 +183,14 @@ export function Topbar() {
             </div>
           )}
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl p-1 shadow-sm">
              <div className="relative" ref={calendarRef}>
                 <button
                    onClick={() => setIsCalendarOpen(prev => !prev)}
-                   className={`p-2 rounded-md transition-colors cursor-pointer ${
+                   className={`p-2 rounded-lg transition-colors cursor-pointer ${
                      isCalendarOpen
-                       ? "text-indigo-500 bg-[var(--surface-secondary)]"
-                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
+                       ? "text-white bg-indigo-600 shadow-sm"
+                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]"
                    }`}
                    aria-label="Study Planner Quick Access"
                    title="Study Planner"
@@ -206,10 +207,10 @@ export function Topbar() {
              <div className="relative" ref={todoRef}>
                 <button
                    onClick={() => setIsTodoOpen(prev => !prev)}
-                   className={`p-2 rounded-md transition-colors cursor-pointer ${
+                   className={`p-2 rounded-lg transition-colors cursor-pointer ${
                      isTodoOpen
-                       ? "text-indigo-500 bg-[var(--surface-secondary)]"
-                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]"
+                       ? "text-white bg-indigo-600 shadow-sm"
+                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]"
                    }`}
                    aria-label="To-Do List Quick Access"
                    title="To-Do List"
@@ -221,10 +222,12 @@ export function Topbar() {
                 </AnimatePresence>
              </div>
 
+             <div className="w-px h-5 bg-[var(--border)] mx-0.5" />
+
              <button
                 onClick={handleDeveloperReset}
                 disabled={isResetting}
-                className="p-2 text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-md transition-colors disabled:opacity-50"
+                className="p-2 text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 aria-label="Developer Reset"
                 title="Perform Hard Reset"
              >
@@ -233,7 +236,7 @@ export function Topbar() {
 
              <button
                 onClick={toggleTheme}
-                className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] rounded-md transition-colors"
+                className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)] rounded-lg transition-colors cursor-pointer"
                 aria-label="Toggle Theme"
                 suppressHydrationWarning
              >
@@ -246,7 +249,7 @@ export function Topbar() {
 
              <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] rounded-md transition-colors"
+                className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)] rounded-lg transition-colors cursor-pointer"
              >
                 {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
              </button>

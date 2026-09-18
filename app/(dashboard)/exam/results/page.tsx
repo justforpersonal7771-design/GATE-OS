@@ -232,14 +232,14 @@ export default function ResultSummaryPage() {
       : { label: "Keep Practicing", message: "Every attempt builds understanding. Review the breakdown and revisit the fundamentals." };
 
   return (
-    <div className="w-full mx-auto p-4 md:p-6 lg:p-8 bg-[var(--background)] min-h-screen font-sans space-y-6">
+    <div className="w-full mx-auto bg-[var(--background)] font-sans flex flex-col gap-6 lg:h-full lg:overflow-hidden">
 
       {/* Hero verdict banner */}
       <motion.div
         initial={{ opacity: 0, y: -12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 md:p-8 shadow-xl shadow-indigo-600/20"
+        className="shrink-0 relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 md:p-8 shadow-xl shadow-indigo-600/20"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-400/20 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none" />
@@ -295,14 +295,14 @@ export default function ResultSummaryPage() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
 
         {/* Left Side: Score breakdown & actions (Spans 7) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 md:p-8 space-y-6"
+          className="lg:col-span-7 lg:self-start lg:max-h-full lg:overflow-y-auto custom-scrollbar bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 md:p-8 space-y-6"
         >
           <div>
             <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Attempted vs Skipped</span>
@@ -375,7 +375,7 @@ export default function ResultSummaryPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.18 }}
-          className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 flex flex-col max-h-[600px]"
+          className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 flex flex-col min-h-[420px] lg:h-full lg:min-h-0"
         >
           {/* Header */}
           <div className="flex-none border-b border-[var(--border-subtle)] pb-4 mb-4">
