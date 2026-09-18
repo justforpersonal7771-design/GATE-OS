@@ -272,15 +272,6 @@ export default function ExamSessionPage() {
            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
               <ExamTimer compact />
 
-              {/* Progress Count details — compact single-row pill instead of two stacked lines */}
-              <div className="hidden lg:flex items-center gap-1.5 font-mono text-[9px] font-black uppercase tracking-widest bg-[var(--surface-secondary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 shrink-0">
-                <span className="text-emerald-600 dark:text-emerald-400">{stats.answered}</span>
-                <span className="text-[var(--text-muted)] font-normal normal-case">/{stats.total} solved</span>
-                <span className="text-[var(--text-muted)]">·</span>
-                <span className="text-purple-600 dark:text-purple-400">{stats.marked}</span>
-                <span className="text-[var(--text-muted)] font-normal normal-case">marked</span>
-              </div>
-
               <div className="flex items-center gap-1.5 border-l border-[var(--border)] pl-3 h-8 shrink-0">
                 {/* Bookmark Toggle in Command Bar */}
                 <button
@@ -379,7 +370,7 @@ export default function ExamSessionPage() {
                   </AnimatePresence>
 
                   {/* BOTTOM ACTION BAR (Sticky to bottom) */}
-                  <div className="flex-none px-4 py-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center border-t border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur z-20 gap-3">
+                  <div className="flex-none px-4 py-2 sm:px-6 flex flex-col sm:flex-row justify-between items-center border-t border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur z-20 gap-2">
                     <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                       <button
                         onClick={() => {
@@ -388,27 +379,27 @@ export default function ExamSessionPage() {
                             if (currentQuestionIndex < totalQuestions - 1) nextQuestion();
                           });
                         }}
-                        className="flex-1 sm:flex-none px-4 py-3 bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg text-sm font-bold transition shadow-sm active:scale-[0.98] cursor-pointer"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg text-sm font-bold transition shadow-sm active:scale-[0.98] cursor-pointer"
                       >
                         Mark & Next
                       </button>
                       <button
                         onClick={handleClearResponse}
-                        className="flex-none px-4 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] font-bold rounded-lg text-sm transition active:scale-[0.98] cursor-pointer"
+                        className="flex-none px-4 py-2 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] font-bold rounded-lg text-sm transition active:scale-[0.98] cursor-pointer"
                       >
                         Clear
                       </button>
                     </div>
 
                     {/* Center: fills the gap between the two button groups with a quick glance summary */}
-                    <div className="hidden md:flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] font-mono">
+                    <div className="hidden md:flex items-center gap-4 text-sm font-bold uppercase tracking-wide text-[var(--text-secondary)]">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         {stats.answered}/{stats.total} solved
                       </span>
-                      <span className="h-3 border-r border-[var(--border)]" />
+                      <span className="h-4 border-r border-[var(--border)]" />
                       <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                        <span className="w-2 h-2 rounded-full bg-purple-500" />
                         {stats.marked} marked
                       </span>
                     </div>
@@ -417,7 +408,7 @@ export default function ExamSessionPage() {
                       <button
                         disabled={currentQuestionIndex === 0}
                         onClick={previousQuestion}
-                        className="flex-1 sm:flex-none px-6 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-primary)] font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
+                        className="flex-1 sm:flex-none px-6 py-2 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-primary)] font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
                       >
                         Previous
                       </button>
@@ -433,7 +424,7 @@ export default function ExamSessionPage() {
                             }
                           });
                         }}
-                        className="flex-1 sm:flex-none px-8 py-3 bg-green-600 text-white font-extrabold tracking-wide uppercase text-sm rounded-lg hover:bg-green-700 transition shadow-md active:scale-[0.98] cursor-pointer"
+                        className="flex-1 sm:flex-none px-8 py-2 bg-green-600 text-white font-extrabold tracking-wide uppercase text-sm rounded-lg hover:bg-green-700 transition shadow-md active:scale-[0.98] cursor-pointer"
                       >
                         Save & Next
                       </button>

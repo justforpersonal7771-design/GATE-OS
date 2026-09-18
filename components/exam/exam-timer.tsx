@@ -71,7 +71,7 @@ export function ExamTimer({ compact = false }: { compact?: boolean }) {
     <div className={`flex items-center text-xs font-bold text-[var(--text-secondary)] select-none ${compact ? "gap-2" : "gap-4"}`}>
       {/* SVG Timer Progress Ring */}
       <div className={`relative ${ringSize} flex items-center justify-center shrink-0`}>
-        <svg className="w-full h-full transform -rotate-90">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 40 40">
           <circle
             cx="20"
             cy="20"
