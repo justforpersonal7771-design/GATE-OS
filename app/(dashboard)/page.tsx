@@ -10,18 +10,14 @@ import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Clock, Loader2, AlertTriangle, ClipboardList, Bookmark
+  Clock, Loader2, AlertTriangle, ClipboardList, Bookmark, TrendingUp as TrendingUpIcon,
+  CheckCircle2, Flame, Timer
 } from "lucide-react";
 
 // Dynamic imports with Skeleton Loading placeholders to guarantee performance (Part 12)
 const HeroSection = dynamic(() => import("@/components/dashboard/hero-section").then(m => m.HeroSection), {
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-64 rounded-3xl" />
-});
-
-const QuickActions = dynamic(() => import("@/components/dashboard/quick-actions").then(m => m.QuickActions), {
-  ssr: false,
-  loading: () => <div className="skeleton-shimmer h-32 rounded-2xl" />
 });
 
 const ProgressVisualizer = dynamic(() => import("@/components/dashboard/progress-visualizer").then(m => m.ProgressVisualizer), {
@@ -113,12 +109,19 @@ export default function Home() {
   const studyHours = overview?.totalTimeSpentMs ? Math.round(overview.totalTimeSpentMs / 1000 / 3600) : 0;
   const streakDays = overview?.currentStreak || 0;
 
-  // These four are deliberately NOT a repeat of the hero's Streak/Solved/
-  // Accuracy/Mastery/Readiness cards above — each one below surfaces
-  // information the hero doesn't, so the two rows stay non-redundant.
+  // Deliberately NOT a repeat of the hero's Streak/Solved/Accuracy/Mastery/
+  // Readiness cards above — every tile below surfaces something the hero
+  // doesn't, so the two rows stay non-redundant. All values are real and
+  // uncapped (recentSessions is capped to 10 server-side, so it's excluded
+  // here rather than shown as a misleading "total").
   const pendingMistakesCount = mistakes.filter(m => !m.mastered).length;
+  const masteredMistakesCount = mistakes.filter(m => m.mastered).length;
   const weakTopicsCount = (dashboardMetrics?.topicPerformance || [])
     .filter(t => t.attempted >= 1 && (t.correct / t.attempted) * 100 < 50).length;
+  const strongTopicsCount = (dashboardMetrics?.topicPerformance || [])
+    .filter(t => t.attempted >= 1 && (t.correct / t.attempted) * 100 >= 75).length;
+  const bestStreak = overview?.longestStreak || 0;
+  const avgTimePerQuestion = overview?.avgTimePerQuestionMs ? Math.round(overview.avgTimePerQuestionMs / 1000) : 0;
 
   return (
     <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8 bg-[var(--background)] min-h-screen">
@@ -172,31 +175,36 @@ export default function Home() {
       )}
       </AnimatePresence>
 
-      {/* 3. Action-oriented metrics row — deliberately distinct from the hero's
-          Streak/Solved/Accuracy/Mastery/Readiness cards above, each one here
-          is something the hero doesn't show and links straight to where you'd
-          act on it. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* 3. Compact metrics grid — square tiles, deliberately distinct from
+          the hero's Streak/Solved/Accuracy/Mastery/Readiness cards above.
+          Every value here is real and uncapped. */}
+      <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
         {[
-          { label: "Study Hours", value: `${studyHours} hrs`, icon: Clock, badge: "bg-amber-500/10", iconColor: "text-amber-500", glow: "bg-amber-500", href: "/analytics" },
+          { label: "Study Hours", value: `${studyHours}h`, icon: Clock, badge: "bg-amber-500/10", iconColor: "text-amber-500", glow: "bg-amber-500", href: "/analytics" },
           { label: "Weak Topics", value: weakTopicsCount, icon: AlertTriangle, badge: "bg-orange-500/10", iconColor: "text-orange-500", glow: "bg-orange-500", href: "/analytics" },
+          { label: "Strong Topics", value: strongTopicsCount, icon: TrendingUpIcon, badge: "bg-teal-500/10", iconColor: "text-teal-500", glow: "bg-teal-500", href: "/analytics" },
           { label: "Pending Mistakes", value: pendingMistakesCount, icon: ClipboardList, badge: "bg-rose-500/10", iconColor: "text-rose-500", glow: "bg-rose-500", href: "/mistakes" },
-          { label: "Bookmarks Saved", value: bookmarksCount, icon: Bookmark, badge: "bg-indigo-500/10", iconColor: "text-indigo-500", glow: "bg-indigo-500", href: "/bookmarks" },
+          { label: "Mastered", value: masteredMistakesCount, icon: CheckCircle2, badge: "bg-emerald-500/10", iconColor: "text-emerald-500", glow: "bg-emerald-500", href: "/mistakes" },
+          { label: "Bookmarks", value: bookmarksCount, icon: Bookmark, badge: "bg-indigo-500/10", iconColor: "text-indigo-500", glow: "bg-indigo-500", href: "/bookmarks" },
+          { label: "Best Streak", value: `${bestStreak}d`, icon: Flame, badge: "bg-pink-500/10", iconColor: "text-pink-500", glow: "bg-pink-500", href: "/analytics" },
+          { label: "Avg Time/Q", value: `${avgTimePerQuestion}s`, icon: Timer, badge: "bg-sky-500/10", iconColor: "text-sky-500", glow: "bg-sky-500", href: "/analytics" },
         ].map((stat, idx) => (
           <motion.button
             key={stat.label}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 + idx * 0.05 }}
+            transition={{ delay: 0.03 + idx * 0.03 }}
             onClick={() => router.push(stat.href)}
-            className="relative bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm overflow-hidden group hover-lift text-left cursor-pointer"
+            className="relative aspect-square bg-[var(--surface)] border border-[var(--border)] p-3 rounded-2xl shadow-sm overflow-hidden group hover-lift text-left cursor-pointer flex flex-col justify-between"
           >
-            <div className={`absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl opacity-[0.15] ${stat.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
-            <div className={`relative w-10 h-10 rounded-xl ${stat.badge} flex items-center justify-center mb-4`}>
-              <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+            <div className={`absolute -top-8 -right-8 w-20 h-20 rounded-full blur-2xl opacity-[0.15] ${stat.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
+            <div className={`relative w-8 h-8 rounded-lg ${stat.badge} flex items-center justify-center`}>
+              <stat.icon className={`w-4 h-4 ${stat.iconColor}`} />
             </div>
-            <div className="relative text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{stat.value}</div>
-            <div className="relative text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1.5">{stat.label}</div>
+            <div className="relative">
+              <div className="text-xl font-black text-[var(--text-primary)] font-mono tracking-tight leading-none">{stat.value}</div>
+              <div className="text-[8px] font-black uppercase tracking-wider text-[var(--text-muted)] mt-1.5 leading-tight">{stat.label}</div>
+            </div>
           </motion.button>
         ))}
       </div>
@@ -206,12 +214,6 @@ export default function Home() {
         
         {/* Left Side (Spans 8 columns) */}
         <div className="lg:col-span-8 space-y-8 flex flex-col justify-start">
-          {/* Quick Actions Panel */}
-          <QuickActions 
-            hasActiveSession={!!activeSession && activeSession.status !== "SUBMITTED"}
-            onResume={handleResume}
-          />
-
           {/* Progress Circular and Mastery Rings */}
           <ProgressVisualizer 
             subjectPerformance={dashboardMetrics?.subjectPerformance || []}
