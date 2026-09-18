@@ -2,18 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
 import { Calendar, Plus, Play, Check, X, Clock3, ChevronRight, ChevronLeft, Target } from "lucide-react";
 import { useCalendarStore } from "@/store/use-calendar-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { toLocalDateStr } from "@/lib/utils";
 import { CalendarEvent } from "@/types/calendar.types";
-
-const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
-  ssr: false,
-  loading: () => <div className="skeleton-shimmer h-[560px]" />,
-});
+import { CompactCalendarView } from "./compact-calendar-view";
 
 const TARGET_EXAM_DATE_KEY = "target_exam_date";
 
@@ -108,7 +103,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.15 }}
       className={`absolute right-0 top-full mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50 transition-[width] duration-200 ${
-        isExpanded ? "w-[min(820px,calc(100vw-2rem))]" : "w-[360px]"
+        isExpanded ? "w-[min(520px,calc(100vw-2rem))]" : "w-[360px]"
       }`}
     >
       {/* Header */}
@@ -140,9 +135,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {isExpanded ? (
-        <div className="p-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          <StudyPlanner />
-        </div>
+        <CompactCalendarView onClose={onClose} />
       ) : (
         <>
       {/* Exam countdown */}

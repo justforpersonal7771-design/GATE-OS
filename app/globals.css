@@ -93,8 +93,9 @@
     --accent-hover: #27272a;
     --accent-foreground: #ffffff;
     
-    --scrollbar-thumb: #a1a1aa;
-    --scrollbar-track: #f4f4f5;
+    --scrollbar-thumb: color-mix(in srgb, #71717a 55%, transparent);
+    --scrollbar-thumb-hover: #52525b;
+    --scrollbar-track: transparent;
 
     /* Exam specific elements */
     --question-surface: #ffffff;
@@ -141,8 +142,9 @@
     --accent-hover: #e4e4e7;
     --accent-foreground: #000000;
 
-    --scrollbar-thumb: #52525b;
-    --scrollbar-track: #18181b;
+    --scrollbar-thumb: color-mix(in srgb, #a1a1aa 45%, transparent);
+    --scrollbar-thumb-hover: #a1a1aa;
+    --scrollbar-track: transparent;
   }
 
   * {
@@ -157,26 +159,32 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  /* Premium Scrollbar — clearly visible in both themes, not just a hover-only hint */
+  /* Premium floating scrollbar — thin, transparent track, semi-opaque pill
+     thumb that solidifies on hover. Applied globally so every scroll
+     surface in the app (not just opted-in panels) gets the same feel. */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
     border-radius: 9999px;
-    border: 2px solid var(--scrollbar-track);
     background-clip: padding-box;
+    transition: background-color 0.15s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-secondary);
+    background-color: var(--scrollbar-thumb-hover);
     background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   /* Question Image Adaptation for Dark Mode */
@@ -189,27 +197,27 @@
   }
 
   /* Scoped scrollbar for inner panels (sidebars, chat logs, code blocks) —
-     same visibility as the page scrollbar but slimmer to fit tight columns. */
+     same floating style as the page scrollbar but a touch slimmer to fit
+     tight columns. */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
   .custom-scrollbar::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
+    height: 6px;
+    width: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: 9999px;
+    background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
     border-radius: 9999px;
-    border: 2px solid var(--scrollbar-track);
     background-clip: padding-box;
+    transition: background-color 0.15s ease;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-secondary);
+    background-color: var(--scrollbar-thumb-hover);
     background-clip: padding-box;
   }
 }
