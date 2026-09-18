@@ -167,65 +167,27 @@ export default function Home() {
 
       {/* 3. Premium Analytics Metrics Row Grid (Part 7) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Metric accuracy */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Practice Accuracy</span>
-             <TrendingUp className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{accuracyValue.toFixed(1)}%</div>
-        </motion.div>
-
-        {/* Metric Solved */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Questions Solved</span>
-             <Target className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{solvedCount}</div>
-        </motion.div>
-
-        {/* Metric Hours */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Study Hours</span>
-             <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{studyHours} hrs</div>
-        </motion.div>
-
-        {/* Metric Streak */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Active Streak</span>
-             <Flame className="w-4 h-4 text-rose-500 fill-rose-500 stroke-none" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{streakDays} days</div>
-        </motion.div>
+        {[
+          { label: "Practice Accuracy", value: `${accuracyValue.toFixed(1)}%`, icon: TrendingUp, badge: "bg-emerald-500/10", iconColor: "text-emerald-500", glow: "bg-emerald-500" },
+          { label: "Questions Solved", value: solvedCount, icon: Target, badge: "bg-indigo-500/10", iconColor: "text-indigo-500", glow: "bg-indigo-500" },
+          { label: "Study Hours", value: `${studyHours} hrs`, icon: Clock, badge: "bg-amber-500/10", iconColor: "text-amber-500", glow: "bg-amber-500" },
+          { label: "Active Streak", value: `${streakDays} days`, icon: Flame, badge: "bg-rose-500/10", iconColor: "text-rose-500 fill-rose-500 stroke-none", glow: "bg-rose-500" },
+        ].map((stat, idx) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 + idx * 0.05 }}
+            className="relative bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm overflow-hidden group hover-lift"
+          >
+            <div className={`absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl opacity-[0.15] ${stat.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
+            <div className={`relative w-10 h-10 rounded-xl ${stat.badge} flex items-center justify-center mb-4`}>
+              <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+            </div>
+            <div className="relative text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{stat.value}</div>
+            <div className="relative text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1.5">{stat.label}</div>
+          </motion.div>
+        ))}
       </div>
 
       {/* 4. Main Two-Column Content Grid */}

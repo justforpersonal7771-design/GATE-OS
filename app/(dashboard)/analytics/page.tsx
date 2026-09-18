@@ -132,73 +132,30 @@ export default function AnalyticsDashboardPage() {
       {/* 1. Personalized Intelligence HUD (Part 1) */}
       {!loadingIntel && intel && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Mastery Hud */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
-          >
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500" />
-            <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Mastery Score</span>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-black text-[var(--text-primary)] font-mono">{intel.masteryScore}%</span>
-              <span className="text-[10px] font-extrabold text-indigo-500 mb-1 flex items-center gap-0.5">
-                <CheckCircle className="w-3.5 h-3.5" /> Core CSE
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Readiness Score Hud */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
-          >
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />
-            <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Readiness Index</span>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-black text-[var(--text-primary)] font-mono">{intel.readinessScore}%</span>
-              <span className="text-[10px] font-extrabold text-emerald-500 mb-1 flex items-center gap-0.5">
-                <Award className="w-3.5 h-3.5" /> Exam Ready
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Confidence Score Hud */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
-          >
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
-            <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Confidence Level</span>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-black text-[var(--text-primary)] font-mono">{intel.confidenceScore}%</span>
-              <span className="text-[10px] font-extrabold text-amber-500 mb-1 flex items-center gap-0.5">
-                <Sparkles className="w-3.5 h-3.5" /> Accuracy/Speed
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Study Momentum Hud */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm relative overflow-hidden hover-lift"
-          >
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500" />
-            <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Learning Consistency</span>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-black text-[var(--text-primary)] font-mono">{intel.consistencyScore}%</span>
-              <span className="text-[10px] font-extrabold text-rose-500 mb-1 flex items-center gap-0.5">
-                <Flame className="w-3.5 h-3.5 fill-rose-500 stroke-none" /> Active Days
-              </span>
-            </div>
-          </motion.div>
+          {[
+            { label: "Mastery Score", value: intel.masteryScore, icon: CheckCircle, tag: "Core CSE", badge: "bg-indigo-500/10", color: "text-indigo-500", glow: "bg-indigo-500" },
+            { label: "Readiness Index", value: intel.readinessScore, icon: Award, tag: "Exam Ready", badge: "bg-emerald-500/10", color: "text-emerald-500", glow: "bg-emerald-500" },
+            { label: "Confidence Level", value: intel.confidenceScore, icon: Sparkles, tag: "Accuracy/Speed", badge: "bg-amber-500/10", color: "text-amber-500", glow: "bg-amber-500" },
+            { label: "Learning Consistency", value: intel.consistencyScore, icon: Flame, tag: "Active Days", badge: "bg-rose-500/10", color: "text-rose-500", glow: "bg-rose-500", fillIcon: true },
+          ].map((stat, idx) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 + idx * 0.05 }}
+              className="relative bg-[var(--surface)] p-5 border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden hover-lift group"
+            >
+              <div className={`absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl opacity-[0.15] ${stat.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
+              <div className={`relative w-9 h-9 rounded-xl ${stat.badge} flex items-center justify-center mb-3`}>
+                <stat.icon className={`w-4.5 h-4.5 ${stat.color} ${stat.fillIcon ? "fill-rose-500 stroke-none" : ""}`} />
+              </div>
+              <span className="relative block text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">{stat.label}</span>
+              <div className="relative flex items-end gap-2">
+                <span className="text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{stat.value}%</span>
+                <span className={`text-[10px] font-extrabold ${stat.color} mb-1`}>{stat.tag}</span>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
 

@@ -267,24 +267,25 @@ export default function AIMentorPage() {
               {/* Learning Health Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: "Predict Readiness", val: `${readiness?.expectedMarks ?? 65}%`, desc: `${readiness?.readinessRating} Level`, icon: Award, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
-                  { label: "Learning Velocity", val: `${readiness?.velocityScore ?? 50}/100`, desc: "Solving rate index", icon: TrendingUp, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20" },
-                  { label: "Spaced Revision Debt", val: `${mistakes.filter(m => !m.mastered).length} items`, desc: "Pending queue", icon: Layers, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-                  { label: "Burnout Risk", val: readiness?.burnoutRisk ?? "Low", desc: "Planner & solves density", icon: Flame, color: "text-rose-500 bg-rose-500/10 border-rose-500/20" }
+                  { label: "Predict Readiness", val: `${readiness?.expectedMarks ?? 65}%`, desc: `${readiness?.readinessRating} Level`, icon: Award, badge: "bg-emerald-500/10", color: "text-emerald-500", glow: "bg-emerald-500" },
+                  { label: "Learning Velocity", val: `${readiness?.velocityScore ?? 50}/100`, desc: "Solving rate index", icon: TrendingUp, badge: "bg-indigo-500/10", color: "text-indigo-500", glow: "bg-indigo-500" },
+                  { label: "Spaced Revision Debt", val: `${mistakes.filter(m => !m.mastered).length} items`, desc: "Pending queue", icon: Layers, badge: "bg-amber-500/10", color: "text-amber-500", glow: "bg-amber-500" },
+                  { label: "Burnout Risk", val: readiness?.burnoutRisk ?? "Low", desc: "Planner & solves density", icon: Flame, badge: "bg-rose-500/10", color: "text-rose-500", glow: "bg-rose-500" }
                 ].map((item, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 + idx * 0.05 }}
-                    className="bg-[var(--surface)] border border-[var(--border)] p-4 rounded-xl flex flex-col justify-between shadow-sm hover-lift"
+                    className="relative bg-[var(--surface)] border border-[var(--border)] p-4 rounded-2xl flex flex-col justify-between shadow-sm hover-lift overflow-hidden group"
                   >
-                    <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">{item.label}</span>
-                      <span className={`p-1.5 rounded-lg border ${item.color}`}><item.icon className="w-3.5 h-3.5" /></span>
+                    <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-[0.15] ${item.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
+                    <div className={`relative w-9 h-9 rounded-xl ${item.badge} flex items-center justify-center mb-3`}>
+                      <item.icon className={`w-4.5 h-4.5 ${item.color}`} />
                     </div>
-                    <div className="mt-3">
-                      <span className="block text-lg font-black text-[var(--text-primary)]">{item.val}</span>
+                    <span className="relative text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">{item.label}</span>
+                    <div className="relative mt-1.5">
+                      <span className="block text-2xl font-black text-[var(--text-primary)] font-mono tracking-tight">{item.val}</span>
                       <span className="text-[10px] font-bold text-[var(--text-muted)]">{item.desc}</span>
                     </div>
                   </motion.div>
