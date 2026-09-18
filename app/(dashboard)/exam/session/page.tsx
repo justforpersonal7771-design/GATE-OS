@@ -229,55 +229,50 @@ export default function ExamSessionPage() {
       <div className="flex flex-col h-screen w-full overflow-hidden bg-[var(--background)] font-sans">
         
         {/* REDESIGNED COMMAND BAR (Occupies full width and displays all metadata - Part 1) */}
-        <header className="flex-none bg-[var(--surface)] border-b border-[var(--border)] shadow-sm flex flex-col md:flex-row md:items-center justify-between px-4 py-3 sm:px-6 shrink-0 z-30 gap-4">
-           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap">
-              <span className="font-extrabold text-lg text-[var(--text-primary)] tracking-tight pr-4 border-r border-[var(--border)]">
-                 GATE OS
-              </span>
-              
+        <header className="flex-none bg-[var(--surface)] border-b border-[var(--border)] shadow-sm flex flex-col md:flex-row md:items-center justify-between px-4 py-2.5 sm:px-5 shrink-0 z-30 gap-3">
+           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xs shrink-0" title="GATE OS">
+                G
+              </div>
+
               {currentQuestion && (
-                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
-                    <span className="text-[var(--text-primary)] bg-[var(--surface-secondary)] px-2.5 py-1.5 rounded-lg border border-[var(--border)] shadow-sm font-mono text-xs">
-                      Q<span className="text-indigo-600 dark:text-indigo-400 font-bold mx-0.5">{currentQuestionIndex + 1}</span> 
-                      <span className="text-[var(--text-muted)] font-normal">/ {totalQuestions}</span>
+                 <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-primary)] bg-[var(--surface-secondary)] px-2 py-1 rounded-md border border-[var(--border)] font-mono text-[11px] shrink-0">
+                      Q<span className="text-indigo-600 dark:text-indigo-400 font-bold">{currentQuestionIndex + 1}</span><span className="text-[var(--text-muted)] font-normal">/{totalQuestions}</span>
                     </span>
-                    <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg border border-indigo-200/50 dark:border-indigo-900/50 shadow-sm">
-                      {currentQuestion.question_type}
-                    </span>
-                    <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg border border-emerald-200/50 dark:border-emerald-900/50 shadow-sm">
-                      +{currentQuestion.marks} / {currentQuestion.question_type === "MCQ" ? `-${(currentQuestion.marks / 3).toFixed(2)}` : "0"}
-                    </span>
-                    <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-1.5 rounded-lg border border-amber-200/50 dark:border-amber-900/50 shadow-sm">
-                      {currentQuestion.difficulty}
-                    </span>
-                    
-                    <span className="h-4 border-r border-[var(--border)] mx-1" />
-                    
-                    <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2.5 py-1 rounded max-w-[110px] truncate inline-block text-[10px] font-bold" title={currentQuestion.section}>
+
+                    {/* Type + Marks + Difficulty combined into one segmented pill */}
+                    <div className="flex items-center rounded-md border border-[var(--border)] overflow-hidden shrink-0 divide-x divide-[var(--border)] shadow-sm">
+                      <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 px-2 py-1">
+                        {currentQuestion.question_type}
+                      </span>
+                      <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-1 font-mono normal-case">
+                        +{currentQuestion.marks}/{currentQuestion.question_type === "MCQ" ? `-${(currentQuestion.marks / 3).toFixed(2)}` : "0"}
+                      </span>
+                      <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-1">
+                        {currentQuestion.difficulty}
+                      </span>
+                    </div>
+
+                    <span className="h-4 border-r border-[var(--border)] mx-0.5 shrink-0" />
+
+                    <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={currentQuestion.section}>
                       {currentQuestion.section || "General"}
                     </span>
-                    <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2.5 py-1 rounded max-w-[110px] truncate inline-block text-[10px] font-bold" title={currentQuestion.subject}>
+                    <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={currentQuestion.subject}>
                       {currentQuestion.subject || "General"}
                     </span>
-                    <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2.5 py-1 rounded max-w-[110px] truncate inline-block text-[10px] font-bold" title={currentQuestion.topic}>
+                    <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={currentQuestion.topic}>
                       {currentQuestion.topic || "General"}
                     </span>
                  </div>
               )}
            </div>
-           
-           <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-              <div className="flex items-center gap-2">
-                 <ExamTimer />
-              </div>
 
-              {/* Progress Count details */}
-              <div className="hidden lg:flex flex-col font-mono text-[9px] text-[var(--text-muted)] uppercase tracking-widest text-right">
-                <span className="font-bold text-[var(--text-primary)]">{stats.answered} / {stats.total} Solved</span>
-                <span className="mt-0.5">{stats.marked} Marked</span>
-              </div>
+           <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+              <ExamTimer compact />
 
-              <div className="flex items-center gap-2 border-l border-[var(--border)] pl-4 h-8 shrink-0">
+              <div className="flex items-center gap-1.5 border-l border-[var(--border)] pl-3 h-8 shrink-0">
                 {/* Bookmark Toggle in Command Bar */}
                 <button
                   onClick={handleBookmarkToggle}
@@ -375,7 +370,7 @@ export default function ExamSessionPage() {
                   </AnimatePresence>
 
                   {/* BOTTOM ACTION BAR (Sticky to bottom) */}
-                  <div className="flex-none px-4 py-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center border-t border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur z-20 gap-3">
+                  <div className="flex-none px-4 py-2 sm:px-6 flex flex-col sm:flex-row justify-between items-center border-t border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur z-20 gap-2">
                     <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                       <button
                         onClick={() => {
@@ -384,23 +379,36 @@ export default function ExamSessionPage() {
                             if (currentQuestionIndex < totalQuestions - 1) nextQuestion();
                           });
                         }}
-                        className="flex-1 sm:flex-none px-4 py-3 bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg text-sm font-bold transition shadow-sm active:scale-[0.98] cursor-pointer"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg text-sm font-bold transition shadow-sm active:scale-[0.98] cursor-pointer"
                       >
                         Mark & Next
                       </button>
                       <button
                         onClick={handleClearResponse}
-                        className="flex-none px-4 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] font-bold rounded-lg text-sm transition active:scale-[0.98] cursor-pointer"
+                        className="flex-none px-4 py-2 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] font-bold rounded-lg text-sm transition active:scale-[0.98] cursor-pointer"
                       >
                         Clear
                       </button>
+                    </div>
+
+                    {/* Center: fills the gap between the two button groups with a quick glance summary */}
+                    <div className="hidden md:flex items-center gap-4 text-sm font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        {stats.answered}/{stats.total} solved
+                      </span>
+                      <span className="h-4 border-r border-[var(--border)]" />
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-purple-500" />
+                        {stats.marked} marked
+                      </span>
                     </div>
 
                     <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                       <button
                         disabled={currentQuestionIndex === 0}
                         onClick={previousQuestion}
-                        className="flex-1 sm:flex-none px-6 py-3 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-primary)] font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
+                        className="flex-1 sm:flex-none px-6 py-2 bg-[var(--surface-secondary)] border border-[var(--border)] shadow-sm hover:bg-[var(--surface-elevated)] text-[var(--text-primary)] font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
                       >
                         Previous
                       </button>
@@ -416,7 +424,7 @@ export default function ExamSessionPage() {
                             }
                           });
                         }}
-                        className="flex-1 sm:flex-none px-8 py-3 bg-green-600 text-white font-extrabold tracking-wide uppercase text-sm rounded-lg hover:bg-green-700 transition shadow-md active:scale-[0.98] cursor-pointer"
+                        className="flex-1 sm:flex-none px-8 py-2 bg-green-600 text-white font-extrabold tracking-wide uppercase text-sm rounded-lg hover:bg-green-700 transition shadow-md active:scale-[0.98] cursor-pointer"
                       >
                         Save & Next
                       </button>

@@ -54,7 +54,31 @@ export class FsmTokenizer {
                 buffer += "$"; // Keep literal $
                 i++;
               } else {
-                buffer += char;
+                // LaTeX text-formatting commands (\textbf{}, \textit{}, \emph{})
+                // are valid LaTeX and render correctly when MathJax already owns
+                // them inside a \( \) / \[ \] span — this branch only runs in
+                // plain-text mode, where they'd otherwise leak as raw
+                // "\textit{...}" text since nothing else understands them here.
+                // Converted to the markdown emphasis formatMarkdownText already
+                // handles, instead of inventing a new AST node type for it.
+                const formatMatch = input.slice(i).match(/^\\(textbf|textit|emph)\{/);
+                if (formatMatch) {
+                  const cmdLen = formatMatch[0].length;
+                  const isBold = formatMatch[1] === "textbf";
+                  let depth = 1;
+                  let j = i + cmdLen;
+                  while (j < len && depth > 0) {
+                    if (input[j] === "{") depth++;
+                    else if (input[j] === "}") depth--;
+                    if (depth > 0) j++;
+                  }
+                  const inner = input.slice(i + cmdLen, j);
+                  const marker = isBold ? "**" : "*";
+                  buffer += `${marker}${inner}${marker}`;
+                  i = j; // land on the closing brace; loop's i++ steps past it
+                } else {
+                  buffer += char;
+                }
               }
             } else {
               buffer += char;

@@ -93,7 +93,8 @@
     --accent-hover: #27272a;
     --accent-foreground: #ffffff;
     
-    --scrollbar-thumb: #d1d5db;
+    --scrollbar-thumb: color-mix(in srgb, #71717a 55%, transparent);
+    --scrollbar-thumb-hover: #52525b;
     --scrollbar-track: transparent;
 
     /* Exam specific elements */
@@ -141,7 +142,8 @@
     --accent-hover: #e4e4e7;
     --accent-foreground: #000000;
 
-    --scrollbar-thumb: #3f3f46;
+    --scrollbar-thumb: color-mix(in srgb, #a1a1aa 45%, transparent);
+    --scrollbar-thumb-hover: #a1a1aa;
     --scrollbar-track: transparent;
   }
 
@@ -157,25 +159,34 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  /* Premium Scrollbar */
+  /* Premium floating scrollbar — thin, transparent track, semi-opaque pill
+     thumb that solidifies on hover. Applied globally so every scroll
+     surface in the app (not just opted-in panels) gets the same feel. */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
     border-radius: 9999px;
+    background-clip: padding-box;
+    transition: background-color 0.15s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-muted);
+    background-color: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
   }
-  
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* Question Image Adaptation for Dark Mode */
   .dark .question-image {
     filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(1.1);
@@ -185,13 +196,62 @@
      transition: filter 0.3s ease;
   }
 
-  /* Custom Syntax Highlighting adjustments for dark mode if needed */
+  /* Scoped scrollbar for inner panels (sidebars, chat logs, code blocks) —
+     same floating style as the page scrollbar but a touch slimmer to fit
+     tight columns. */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
   .custom-scrollbar::-webkit-scrollbar {
-    height: 4px;
-    width: 4px;
+    height: 6px;
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 2px;
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    background-clip: padding-box;
+    transition: background-color 0.15s ease;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
+  }
+}
+
+/* Print / "Print / PDF" report stylesheet. Interactive chrome (topbar nav,
+   all buttons, dropdowns) never makes sense on a printed report, so it's
+   hidden globally rather than requiring every page to opt in. Content
+   containers are unlocked from their app-shell scroll/height constraints
+   so the full report flows across as many printed pages as needed. */
+@media print {
+  header:has(nav),
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  html, body {
+    background: white !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .rounded-3xl, .rounded-2xl, .rounded-xl {
+    border-radius: 8px !important;
   }
 }

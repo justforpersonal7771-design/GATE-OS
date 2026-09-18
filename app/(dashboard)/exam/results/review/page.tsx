@@ -18,16 +18,27 @@ export default function ReviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const id = searchParams?.get("id");
+  const initialQParam = searchParams?.get("q");
   const { theme, setTheme } = useTheme();
 
   const [session, setSession] = useState<ExamSession | null>(null);
   const [loading, setLoading] = useState(true);
   const { bookmarks, mistakes, addBookmark, removeBookmark, updateBookmarkNotes, updateMistakeNotes, loadStudyData } = useStudyStore();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const parsed = initialQParam ? parseInt(initialQParam, 10) : 0;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  });
 
   useEffect(() => {
     loadStudyData();
   }, [loadStudyData]);
+
+  // Clamp the deep-linked ?q= index once the session's real question count is known.
+  useEffect(() => {
+    if (!session) return;
+    const maxIndex = Math.max(session.draftConfig.questions.length - 1, 0);
+    if (currentIndex > maxIndex) setCurrentIndex(maxIndex);
+  }, [session, currentIndex]);
 
   useEffect(() => {
     async function load() {
@@ -57,7 +68,7 @@ export default function ReviewPage() {
   if (!session) return <div className="p-8 text-center text-rose-500 font-bold bg-[var(--background)] h-screen">Result not found.</div>;
 
   const draftQuestions = session.draftConfig.questions;
-  const currentQRef = draftQuestions[currentIndex];
+  const currentQRef = draftQuestions[currentIndex] || draftQuestions[0];
   const qId = currentQRef.questionId;
   const q = QuestionRepository.getQuestionById(qId);
   const currentResponse = session.responses[qId];

@@ -1051,7 +1051,15 @@ export default function AITutorWorkspace() {
                 {/* Dynamic practice generation trigger & list */}
                 <div className="space-y-3 border-t border-[var(--border-subtle)] pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dynamic Practice Set</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dynamic Practice Set</span>
+                      {practiceQuestions.length > 0 && (
+                        <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded" title="AI-generated practice — not official GATE questions">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          AI Generated
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={handleGeneratePractice}
                       disabled={generatingPractice}
@@ -1091,6 +1099,10 @@ export default function AITutorWorkspace() {
                                   <span>{q.questionType || "MCQ"}</span>
                                   <span>•</span>
                                   <span>{q.difficulty || "Medium"}</span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
+                                    <Sparkles className="w-2.5 h-2.5" /> AI
+                                  </span>
                                 </div>
                                 {!isExpanded && (
                                   <p className="text-[11px] font-bold text-[var(--text-secondary)] truncate mt-1 leading-relaxed">

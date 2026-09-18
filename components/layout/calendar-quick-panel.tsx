@@ -2,18 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
 import { Calendar, Plus, Play, Check, X, Clock3, ChevronRight, ChevronLeft, Target } from "lucide-react";
 import { useCalendarStore } from "@/store/use-calendar-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { toLocalDateStr } from "@/lib/utils";
 import { CalendarEvent } from "@/types/calendar.types";
-
-const StudyPlanner = dynamic(() => import("@/components/dashboard/study-planner").then(m => m.StudyPlanner), {
-  ssr: false,
-  loading: () => <div className="skeleton-shimmer h-[560px]" />,
-});
+import { CompactCalendarView } from "./compact-calendar-view";
 
 const TARGET_EXAM_DATE_KEY = "target_exam_date";
 
@@ -108,7 +103,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.15 }}
       className={`absolute right-0 top-full mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50 transition-[width] duration-200 ${
-        isExpanded ? "w-[min(820px,calc(100vw-2rem))]" : "w-[360px]"
+        isExpanded ? "w-[min(520px,calc(100vw-2rem))]" : "w-[360px]"
       }`}
     >
       {/* Header */}
@@ -140,9 +135,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {isExpanded ? (
-        <div className="p-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          <StudyPlanner />
-        </div>
+        <CompactCalendarView onClose={onClose} />
       ) : (
         <>
       {/* Exam countdown */}
@@ -163,7 +156,17 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
         ) : (
           <button
             onClick={() => setEditingExamDate(true)}
-            className="text-[10px] font-black text-[var(--text-primary)] hover:text-indigo-500 transition-colors cursor-pointer font-mono"
+            className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full transition-colors cursor-pointer ${
+              daysToExam === null
+                ? "text-[var(--text-primary)] hover:text-indigo-500"
+                : daysToExam < 0
+                ? "bg-[var(--surface-secondary)] text-[var(--text-muted)]"
+                : daysToExam <= 14
+                ? "bg-rose-500/10 text-rose-500"
+                : daysToExam <= 45
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            }`}
           >
             {daysToExam !== null ? (daysToExam >= 0 ? `${daysToExam} days left` : "Date passed") : "Set date"}
           </button>
@@ -179,10 +182,18 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="divide-y divide-[var(--border-subtle)]">
             {todayEvents.map(e => (
-              <div key={e.id} className="p-3 flex items-center gap-2.5 hover:bg-[var(--surface-secondary)]/50 transition-colors group">
+              <div key={e.id} className="relative p-3 pl-4 flex items-center gap-2.5 hover:bg-[var(--surface-secondary)]/50 transition-colors group">
+                <span
+                  className={`absolute left-0 top-1.5 bottom-1.5 w-1 rounded-full ${
+                    e.studyType === "Revision" ? "bg-purple-500" :
+                    e.studyType === "Mock Test" ? "bg-rose-500" :
+                    e.studyType === "Mistakes" ? "bg-amber-500" :
+                    e.studyType === "Bookmarks" ? "bg-blue-500" : "bg-indigo-500"
+                  }`}
+                />
                 <button
                   onClick={() => handleToggleComplete(e)}
-                  className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-colors cursor-pointer ${
+                  className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors cursor-pointer ${
                     e.completed ? "bg-emerald-500 border-emerald-500" : "border-[var(--border)] hover:border-emerald-500"
                   }`}
                 >

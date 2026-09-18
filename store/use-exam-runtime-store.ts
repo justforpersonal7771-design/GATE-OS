@@ -30,7 +30,12 @@ export const useExamRuntimeStore = create<RuntimeState>((set, get) => ({
   isHydrated: false,
 
   initializeStore: async () => {
+    // Guards against a real race: if startSession() runs (and marks isHydrated true)
+    // while this restore is still in flight, this must not clobber the freshly
+    // started session with whatever restoreSession() read before that happened.
+    if (get().isHydrated) return;
     const session = await SessionManager.restoreSession();
+    if (get().isHydrated) return;
     set({ activeSession: session, isHydrated: true });
   },
 

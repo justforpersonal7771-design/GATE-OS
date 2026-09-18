@@ -7,7 +7,7 @@ import { QuestionRepository } from "@/lib/repository/question-repository";
 import { Clock } from "lucide-react";
 import { motion } from "motion/react";
 
-export function ExamTimer() {
+export function ExamTimer({ compact = false }: { compact?: boolean }) {
   const status = useExamRuntimeStore((state) => state.activeSession?.status);
   const elapsed = useExamRuntimeStore((state) => state.activeSession?.elapsedSeconds || 0);
   const tickTimer = useExamRuntimeStore((state) => state.tickTimer);
@@ -64,11 +64,14 @@ export function ExamTimer() {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - remainingRatio);
 
+  const ringSize = compact ? "w-8 h-8" : "w-10 h-10";
+  const iconSize = compact ? "w-3.5 h-3.5" : "w-4 h-4";
+
   return (
-    <div className="flex items-center gap-4 text-xs font-bold text-[var(--text-secondary)] select-none">
+    <div className={`flex items-center text-xs font-bold text-[var(--text-secondary)] select-none ${compact ? "gap-2" : "gap-4"}`}>
       {/* SVG Timer Progress Ring */}
-      <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-        <svg className="w-full h-full transform -rotate-90">
+      <div className={`relative ${ringSize} flex items-center justify-center shrink-0`}>
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 40 40">
           <circle
             cx="20"
             cy="20"
@@ -81,10 +84,10 @@ export function ExamTimer() {
             cy="20"
             r={radius}
             className={`fill-none ${
-              remainingRatio <= 0.15 
-                ? 'stroke-rose-500' 
-                : remainingRatio <= 0.3 
-                  ? 'stroke-amber-500' 
+              remainingRatio <= 0.15
+                ? 'stroke-rose-500'
+                : remainingRatio <= 0.3
+                  ? 'stroke-amber-500'
                   : 'stroke-indigo-500'
             }`}
             strokeWidth="3"
@@ -95,20 +98,27 @@ export function ExamTimer() {
             strokeLinecap="round"
           />
         </svg>
-        <Clock className={`w-4 h-4 absolute ${remainingRatio <= 0.15 ? 'text-rose-500 animate-pulse' : 'text-[var(--text-muted)]'}`} />
+        <Clock className={`${iconSize} absolute ${remainingRatio <= 0.15 ? 'text-rose-500 animate-pulse' : 'text-[var(--text-muted)]'}`} />
       </div>
-      
+
       {/* Time Stats Columns */}
       <div className="flex flex-col font-mono">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-sm font-black text-[var(--text-primary)] leading-none">{formatTime(remaining)}</span>
-          <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-wider leading-none">rem</span>
+          <span className={`font-black text-[var(--text-primary)] leading-none ${compact ? "text-xs" : "text-sm"}`}>{formatTime(remaining)}</span>
+          <span className="text-[8px] text-[var(--text-muted)] font-black uppercase tracking-wider leading-none">rem</span>
         </div>
-        <div className="flex gap-2 text-[9px] text-[var(--text-muted)] uppercase tracking-wider mt-1 font-semibold whitespace-nowrap">
-          <span>Elapsed: {formatTime(elapsed)}</span>
-          <span>•</span>
-          <span>Est. End: {estFinishTime}</span>
-        </div>
+        {!compact && (
+          <div className="flex gap-2 text-[9px] text-[var(--text-muted)] uppercase tracking-wider mt-1 font-semibold whitespace-nowrap">
+            <span>Elapsed: {formatTime(elapsed)}</span>
+            <span>•</span>
+            <span>Est. End: {estFinishTime}</span>
+          </div>
+        )}
+        {compact && (
+          <span className="text-[8px] text-[var(--text-muted)] font-semibold uppercase tracking-wider mt-0.5 whitespace-nowrap">
+            End {estFinishTime}
+          </span>
+        )}
       </div>
     </div>
   );

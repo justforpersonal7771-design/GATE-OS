@@ -90,7 +90,7 @@ export function TodoQuickPanel() {
                 >
                   <button
                     onClick={() => toggleItem(item.id)}
-                    className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-colors cursor-pointer ${
+                    className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors cursor-pointer ${
                       item.completed ? "bg-emerald-500 border-emerald-500" : "border-[var(--border)] hover:border-emerald-500"
                     }`}
                   >

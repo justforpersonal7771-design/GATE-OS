@@ -9,19 +9,12 @@ import { useStudyStore } from "@/store/use-study-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Target, Clock, Flame, Loader2, TrendingUp
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // Dynamic imports with Skeleton Loading placeholders to guarantee performance (Part 12)
 const HeroSection = dynamic(() => import("@/components/dashboard/hero-section").then(m => m.HeroSection), {
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-64 rounded-3xl" />
-});
-
-const QuickActions = dynamic(() => import("@/components/dashboard/quick-actions").then(m => m.QuickActions), {
-  ssr: false,
-  loading: () => <div className="skeleton-shimmer h-32 rounded-2xl" />
 });
 
 const ProgressVisualizer = dynamic(() => import("@/components/dashboard/progress-visualizer").then(m => m.ProgressVisualizer), {
@@ -47,6 +40,11 @@ const ActivityTimeline = dynamic(() => import("@/components/dashboard/activity-t
 const RecentExams = dynamic(() => import("@/components/dashboard/recent-exams").then(m => m.RecentExams), {
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-[380px] rounded-2xl" />
+});
+
+const MetricsStrip = dynamic(() => import("@/components/dashboard/metrics-strip").then(m => m.MetricsStrip), {
+  ssr: false,
+  loading: () => <div className="skeleton-shimmer h-[170px] rounded-2xl" />
 });
 
 export default function Home() {
@@ -113,6 +111,20 @@ export default function Home() {
   const studyHours = overview?.totalTimeSpentMs ? Math.round(overview.totalTimeSpentMs / 1000 / 3600) : 0;
   const streakDays = overview?.currentStreak || 0;
 
+  // Deliberately NOT a repeat of the hero's Streak/Solved/Accuracy/Mastery/
+  // Readiness cards above — every tile below surfaces something the hero
+  // doesn't, so the two rows stay non-redundant. All values are real and
+  // uncapped (recentSessions is capped to 10 server-side, so it's excluded
+  // here rather than shown as a misleading "total").
+  const pendingMistakesCount = mistakes.filter(m => !m.mastered).length;
+  const masteredMistakesCount = mistakes.filter(m => m.mastered).length;
+  const weakTopicsCount = (dashboardMetrics?.topicPerformance || [])
+    .filter(t => t.attempted >= 1 && (t.correct / t.attempted) * 100 < 50).length;
+  const strongTopicsCount = (dashboardMetrics?.topicPerformance || [])
+    .filter(t => t.attempted >= 1 && (t.correct / t.attempted) * 100 >= 75).length;
+  const bestStreak = overview?.longestStreak || 0;
+  const avgTimePerQuestion = overview?.avgTimePerQuestionMs ? Math.round(overview.avgTimePerQuestionMs / 1000) : 0;
+
   return (
     <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8 bg-[var(--background)] min-h-screen">
       
@@ -165,80 +177,25 @@ export default function Home() {
       )}
       </AnimatePresence>
 
-      {/* 3. Premium Analytics Metrics Row Grid (Part 7) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Metric accuracy */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Practice Accuracy</span>
-             <TrendingUp className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{accuracyValue.toFixed(1)}%</div>
-        </motion.div>
-
-        {/* Metric Solved */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Questions Solved</span>
-             <Target className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{solvedCount}</div>
-        </motion.div>
-
-        {/* Metric Hours */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Study Hours</span>
-             <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{studyHours} hrs</div>
-        </motion.div>
-
-        {/* Metric Streak */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm relative overflow-hidden group hover-lift"
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
-          <div className="flex justify-between items-center mb-3">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Active Streak</span>
-             <Flame className="w-4 h-4 text-rose-500 fill-rose-500 stroke-none" />
-          </div>
-          <div className="text-2xl font-black text-[var(--text-primary)] font-mono">{streakDays} days</div>
-        </motion.div>
-      </div>
+      {/* 3. Grouped metrics — Study Momentum vs Performance Signals, deliberately
+          distinct from the hero's Streak/Solved/Accuracy/Mastery/Readiness cards
+          above. Every value here is real and uncapped. */}
+      <MetricsStrip
+        studyHours={studyHours}
+        bookmarksCount={bookmarksCount}
+        bestStreak={bestStreak}
+        avgTimePerQuestion={avgTimePerQuestion}
+        weakTopicsCount={weakTopicsCount}
+        strongTopicsCount={strongTopicsCount}
+        pendingMistakesCount={pendingMistakesCount}
+        masteredMistakesCount={masteredMistakesCount}
+      />
 
       {/* 4. Main Two-Column Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         
         {/* Left Side (Spans 8 columns) */}
         <div className="lg:col-span-8 space-y-8 flex flex-col justify-start">
-          {/* Quick Actions Panel */}
-          <QuickActions 
-            hasActiveSession={!!activeSession && activeSession.status !== "SUBMITTED"}
-            onResume={handleResume}
-          />
-
           {/* Progress Circular and Mastery Rings */}
           <ProgressVisualizer 
             subjectPerformance={dashboardMetrics?.subjectPerformance || []}

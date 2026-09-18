@@ -13,6 +13,15 @@ import { LearningEngine, PersonalizedIntelligence } from "@/lib/learning/Learnin
 import { AdaptiveRevisionItem } from "@/lib/learning/AdaptiveEngine";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
+import { MathJaxContext } from "better-react-mathjax";
+
+const mathJaxConfig = {
+  loader: { load: ["input/tex", "output/chtml"] },
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+  },
+};
 
 export default function RevisionBuilderPage() {
   const router = useRouter();
@@ -73,98 +82,95 @@ export default function RevisionBuilderPage() {
   };
 
   return (
-    <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8 bg-[var(--background)] font-sans">
-      
+    <MathJaxContext config={mathJaxConfig}>
+    <div className="w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-4 bg-[var(--background)] font-sans h-full overflow-hidden">
+
       {/* Title */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
-          <RefreshCw className="w-8 h-8 text-indigo-500" />
-          <span>Adaptive Revision Engine</span>
+      <div className="shrink-0 flex items-center gap-2">
+        <RefreshCw className="w-6 h-6 text-indigo-500" />
+        <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">
+          Adaptive Revision Engine
         </h1>
-        <p className="mt-2 text-sm text-[var(--text-secondary)] font-semibold">
-          Reorder and prioritize revision topics dynamically using recency decay, difficulty, and confidence tracking.
-        </p>
       </div>
 
       {/* Main Revision Control desk */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        
+      <div className="shrink-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
+
         {/* Left Side: Revision Modes selection (Spans 7) */}
-        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-primary)] mb-5">
-              Select Revision Parameters
-            </h3>
-            
-            <div className="space-y-4">
-              <motion.div
-                whileHover={{ scale: 1.008 }}
-                whileTap={{ scale: 0.99 }}
-                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-colors flex justify-between items-center ${mode === "mistakes" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
-                onClick={() => setMode("mistakes")}
-              >
-                <div>
-                  <h4 className="font-bold text-sm text-[var(--text-primary)]">Mistakes Bank Queue</h4>
-                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Revise questions flagged as incorrect during exams.</p>
-                </div>
-                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
-                  {mistakes.filter(m => !m.mastered).length} Items
-                </span>
-              </motion.div>
+        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 shadow-sm">
+          <h3 className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-primary)] mb-3">
+            Select Revision Parameters
+          </h3>
 
-              <motion.div
-                whileHover={{ scale: 1.008 }}
-                whileTap={{ scale: 0.99 }}
-                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-colors flex justify-between items-center ${mode === "bookmarks" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
-                onClick={() => setMode("bookmarks")}
-              >
-                <div>
-                  <h4 className="font-bold text-sm text-[var(--text-primary)]">Bookmarked Items</h4>
-                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Revise bookmarks, folders, and formula notes.</p>
-                </div>
-                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
-                  {bookmarks.length} Items
-                </span>
-              </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <motion.div
+              whileHover={{ scale: 1.008 }}
+              whileTap={{ scale: 0.99 }}
+              className={`border border-[var(--border-subtle)] rounded-xl p-3.5 cursor-pointer transition-colors flex justify-between items-start gap-2 ${mode === "mistakes" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+              onClick={() => setMode("mistakes")}
+            >
+              <div>
+                <h4 className="font-bold text-sm text-[var(--text-primary)]">Mistakes Bank Queue</h4>
+                <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Flagged as incorrect during exams.</p>
+              </div>
+              <span className="shrink-0 bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                {mistakes.filter(m => !m.mastered).length}
+              </span>
+            </motion.div>
 
-              <motion.div
-                whileHover={{ scale: 1.008 }}
-                whileTap={{ scale: 0.99 }}
-                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-colors flex justify-between items-center ${mode === "weak_topics" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
-                onClick={() => setMode("weak_topics")}
-              >
-                <div>
-                  <h4 className="font-bold text-sm text-[var(--text-primary)]">Weak Topics (&lt;50% accuracy)</h4>
-                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Focus exclusively on topics where you scored poorly.</p>
-                </div>
-                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
-                  {weakTopics.length} Topics
-                </span>
-              </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.008 }}
+              whileTap={{ scale: 0.99 }}
+              className={`border border-[var(--border-subtle)] rounded-xl p-3.5 cursor-pointer transition-colors flex justify-between items-start gap-2 ${mode === "bookmarks" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+              onClick={() => setMode("bookmarks")}
+            >
+              <div>
+                <h4 className="font-bold text-sm text-[var(--text-primary)]">Bookmarked Items</h4>
+                <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Bookmarks, folders, formula notes.</p>
+              </div>
+              <span className="shrink-0 bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                {bookmarks.length}
+              </span>
+            </motion.div>
 
-              <motion.div
-                whileHover={{ scale: 1.008 }}
-                whileTap={{ scale: 0.99 }}
-                className={`border border-[var(--border-subtle)] rounded-xl p-4 cursor-pointer transition-colors flex justify-between items-center ${mode === "ai_insights" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
-                onClick={() => setMode("ai_insights")}
-              >
-                <div>
-                  <h4 className="font-bold text-sm text-[var(--text-primary)]">AI Insights &amp; Saved Shortcuts</h4>
-                  <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Revise formulas, shortcut tricks, and learning sheets compiled by AI.</p>
-                </div>
-                <span className="bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                  {bookmarks.filter(b => b.aiShortcut || b.personalObservations).length} Insights
-                </span>
-              </motion.div>
-            </div>
+            <motion.div
+              whileHover={{ scale: 1.008 }}
+              whileTap={{ scale: 0.99 }}
+              className={`border border-[var(--border-subtle)] rounded-xl p-3.5 cursor-pointer transition-colors flex justify-between items-start gap-2 ${mode === "weak_topics" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+              onClick={() => setMode("weak_topics")}
+            >
+              <div>
+                <h4 className="font-bold text-sm text-[var(--text-primary)]">Weak Topics (&lt;50%)</h4>
+                <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Topics you scored poorly on.</p>
+              </div>
+              <span className="shrink-0 bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                {weakTopics.length}
+              </span>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.008 }}
+              whileTap={{ scale: 0.99 }}
+              className={`border border-[var(--border-subtle)] rounded-xl p-3.5 cursor-pointer transition-colors flex justify-between items-start gap-2 ${mode === "ai_insights" ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15" : "bg-[var(--surface-secondary)]/50 hover:bg-[var(--surface-secondary)]"}`}
+              onClick={() => setMode("ai_insights")}
+            >
+              <div>
+                <h4 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> AI Insights
+                </h4>
+                <p className="text-[var(--text-muted)] text-xs font-medium mt-0.5">Shortcuts &amp; sheets from AI.</p>
+              </div>
+              <span className="shrink-0 bg-[var(--surface)] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] shadow-sm text-indigo-500">
+                {bookmarks.filter(b => b.aiShortcut || b.personalObservations).length}
+              </span>
+            </motion.div>
           </div>
 
-          <div className="pt-6 border-t border-[var(--border-subtle)] mt-8 flex justify-end">
+          <div className="pt-3 mt-3 border-t border-[var(--border-subtle)] flex justify-end">
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleStartRevision}
-              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase tracking-wider rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs"
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase tracking-wider rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer text-xs"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>Launch Revision Session</span>
@@ -173,44 +179,42 @@ export default function RevisionBuilderPage() {
         </div>
 
         {/* Right Side: Quick Adaptive recommendations (Spans 5) */}
-        <div className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div className="space-y-4">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-primary)]">
-              Engine Suggestions
-            </h3>
+        <div className="lg:col-span-5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 shadow-sm">
+          <h3 className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-primary)] mb-3">
+            Engine Suggestions
+          </h3>
 
-            {!loadingIntel && intel && (
-              <div className="space-y-4">
-                <div className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Revision Due Today</span>
-                    <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-1">
-                      {intel.todaysFocus.topic}
-                    </span>
-                    <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">{intel.todaysFocus.reason}</p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Estimated Queue Review Time</span>
-                    <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-0.5">
-                      {intel.revisionQueue.reduce((acc, q) => acc + q.estimatedTimeMin, 0)} Minutes
-                    </span>
-                    <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">Required time to resolve all pending high-priority review tasks.</p>
-                  </div>
+          {!loadingIntel && intel && (
+            <div className="space-y-3">
+              <div className="p-3.5 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Revision Due Today</span>
+                  <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-1">
+                    {intel.todaysFocus.topic}
+                  </span>
+                  <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">{intel.todaysFocus.reason}</p>
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="p-3.5 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-xl flex items-start gap-3">
+                <Clock className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="block text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Estimated Queue Review Time</span>
+                  <span className="text-xs font-extrabold text-[var(--text-primary)] block mb-0.5">
+                    {intel.revisionQueue.reduce((acc, q) => acc + q.estimatedTimeMin, 0)} Minutes
+                  </span>
+                  <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">Required time to resolve all pending high-priority review tasks.</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 3. Reordered Revision Queue list */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/50 flex justify-between items-center">
+      {/* 3. Reordered Revision Queue list — fills remaining space, scrolls internally */}
+      <div className="flex-1 min-h-0 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="shrink-0 px-5 py-3 border-b border-[var(--border-subtle)] bg-[var(--surface-secondary)]/50 flex justify-between items-center">
           <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)] flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-indigo-500" />
             <span>{mode === "ai_insights" ? "Saved AI Formulas & Shortcuts" : "Dynamic Revision Queue"}</span>
@@ -218,7 +222,7 @@ export default function RevisionBuilderPage() {
         </div>
 
           {mode === "ai_insights" ? (
-            <div className="p-5">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5">
               {bookmarks.filter(b => b.aiShortcut || b.personalObservations).length === 0 ? (
                 <div className="p-12 text-center text-xs text-[var(--text-muted)] font-semibold flex flex-col items-center justify-center gap-3">
                   <Sparkles className="w-12 h-12 text-indigo-500 animate-pulse" />
@@ -266,10 +270,10 @@ export default function RevisionBuilderPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
               {!loadingIntel && intel && intel.revisionQueue.length > 0 ? (
                 <table className="w-full text-xs text-left min-w-[700px]">
-                  <thead className="text-[9px] font-black uppercase bg-[var(--surface-secondary)] text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
+                  <thead className="text-[9px] font-black uppercase bg-[var(--surface-secondary)] text-[var(--text-muted)] border-b border-[var(--border-subtle)] sticky top-0 z-10">
                     <tr>
                       <th className="px-5 py-3.5">Topic Details</th>
                       <th className="px-5 py-3.5 text-center">Priority</th>
@@ -327,5 +331,6 @@ export default function RevisionBuilderPage() {
           )}
       </div>
     </div>
+    </MathJaxContext>
   );
 }

@@ -4,18 +4,23 @@ import { useEffect, useState, useMemo } from "react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { MemoryEngine, KnowledgeGraph, InsightMemory, MistakePattern, LearnerTimelineMilestone, ReadinessScorecard } from "@/lib/ai/memory/MemoryEngine";
+import { StudyPlanEngine, StudyPlanSuggestion } from "@/lib/ai/memory/StudyPlanEngine";
 import { MasteryEngine, TopicMastery } from "@/lib/learning/MasteryEngine";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
+import { toLocalDateStr } from "@/lib/utils";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
-import { 
-  Sparkles, Loader2, BrainCircuit, Activity, Clock, Zap, Star, AlertTriangle, 
-  HelpCircle, ShieldCheck, TrendingUp, Calendar, BookOpen, Layers, CheckCircle2, Flame, Award
+import {
+  Sparkles, Loader2, BrainCircuit, Activity, Clock, Zap, Star, AlertTriangle,
+  HelpCircle, ShieldCheck, TrendingUp, Calendar, BookOpen, Layers, CheckCircle2, Flame, Award, CalendarPlus, Check
 } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { MathJaxContext } from "better-react-mathjax";
 import { useToastStore } from "@/store/use-toast-store";
+import { useCalendarStore } from "@/store/use-calendar-store";
 import { AnimatePresence, motion } from "motion/react";
+import { buildStudyReportMarkdown, downloadTextFile } from "@/lib/export/markdown-export";
+import { Download } from "lucide-react";
 
 export default function AIMentorPage() {
   const { mistakes, bookmarks, loadStudyData } = useStudyStore();
@@ -36,6 +41,13 @@ export default function AIMentorPage() {
   // Real computed inputs for readiness prediction — never fabricated.
   const [topicMasteryMap, setTopicMasteryMap] = useState<Record<string, TopicMastery>>({});
   const [plannerCompletion, setPlannerCompletion] = useState<number | null>(null);
+  const [examDate, setExamDate] = useState<string | null>(null);
+
+  // AI Study Planner — rule-based recommendations (see StudyPlanEngine),
+  // never auto-added to the calendar; the student must click to add each one.
+  const [studyPlanSuggestions, setStudyPlanSuggestions] = useState<StudyPlanSuggestion[]>([]);
+  const [addedSuggestionIds, setAddedSuggestionIds] = useState<Set<string>>(new Set());
+  const { addEvent: addCalendarEvent, events: calendarEvents, loadEvents: loadCalendarEvents } = useCalendarStore();
 
   useEffect(() => {
     setMounted(true);
@@ -44,10 +56,17 @@ export default function AIMentorPage() {
       await loadStudyData();
       await refreshAnalytics();
       await MemoryEngine.initialize();
+      await loadCalendarEvents();
+      const rec = await IDBManager.getMetadata("target_exam_date");
+      if (rec?.value) setExamDate(String(rec.value));
       setLoading(false);
     };
     loadMentorData();
-  }, [loadStudyData, refreshAnalytics]);
+  }, [loadStudyData, refreshAnalytics, loadCalendarEvents]);
+
+  const daysToExam = examDate
+    ? Math.round((new Date(examDate + "T00:00:00").getTime() - new Date(toLocalDateStr() + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24))
+    : null;
 
   // Aggregate student stats & masteries across subjects. Confidence is the
   // average of real per-mistake confidence scores recorded for that subject;
@@ -112,6 +131,62 @@ export default function AIMentorPage() {
     );
     setReadiness(pred);
   }, [mounted, loading, subjectMasteries, mistakes, bookmarks, dashboardMetrics, plannerCompletion]);
+
+  // AI Study Planner — recompute suggestions once real mastery/readiness/
+  // calendar data is available. Purely rule-based (see StudyPlanEngine),
+  // no AI API call involved.
+  useEffect(() => {
+    if (!mounted || loading || !readiness || Object.keys(topicMasteryMap).length === 0) return;
+    const suggestions = StudyPlanEngine.generateSuggestions({
+      mistakes,
+      topicMasteryMap,
+      burnoutRisk: readiness.burnoutRisk,
+      existingEvents: calendarEvents,
+    });
+    setStudyPlanSuggestions(suggestions);
+  }, [mounted, loading, readiness, topicMasteryMap, mistakes, calendarEvents]);
+
+  const handleAddSuggestionToCalendar = async (s: StudyPlanSuggestion) => {
+    await addCalendarEvent({
+      id: crypto.randomUUID(),
+      title: s.title,
+      description: s.reason,
+      category: s.studyType === "Revision" ? "Revision" : s.studyType === "Mistakes" ? "Mistakes Review" : s.studyType === "Mock Test" ? "Mock Test" : "Study",
+      date: s.suggestedDate,
+      color: s.priority === "High" ? "#f43f5e" : s.priority === "Medium" ? "#f59e0b" : "#6366f1",
+      priority: s.priority,
+      completed: false,
+      subject: s.subject,
+      topic: s.topic,
+      studyType: s.studyType,
+      timeRangeType: "date_only",
+      revisionCycle: "One Time",
+      status: "Pending",
+    });
+    setAddedSuggestionIds(prev => new Set(prev).add(s.id));
+    useToastStore.getState().show(`"${s.title}" added to your calendar`);
+  };
+
+  const handleExportMarkdown = () => {
+    const md = buildStudyReportMarkdown({
+      generatedAt: new Date().toLocaleString(),
+      coachGreeting: coachAdvice.greeting,
+      coachBody: coachAdvice.body,
+      readiness,
+      metrics: {
+        learningVelocity: readiness?.velocityScore ?? 0,
+        spacedRevisionDebt: mistakes.filter(m => !m.mastered).length,
+        burnoutRisk: readiness?.burnoutRisk ?? "Low",
+        daysToExam,
+      },
+      mistakePatterns,
+      savedShortcuts,
+      studyPlanSuggestions,
+      timeline,
+    });
+    downloadTextFile(`gate-os-study-report-${toLocalDateStr()}.md`, md);
+    useToastStore.getState().show("Study report exported as Markdown");
+  };
 
   // Scan and discover mistakes patterns
   useEffect(() => {
@@ -203,34 +278,7 @@ export default function AIMentorPage() {
 
   return (
     <MathJaxContext config={mathJaxConfig}>
-      <div className="min-h-screen bg-[var(--background)] p-4 md:p-8 space-y-8 pb-16">
-        
-        {/* Header command bar */}
-        <motion.header
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex justify-between items-center border-b border-[var(--border)] pb-5"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg">
-              <BrainCircuit className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">AI Mentor Dashboard</h1>
-              <p className="text-xs font-semibold text-[var(--text-secondary)]">Your proactive personal study coach & readiness predictor.</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] rounded-lg transition text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              Print Report
-            </button>
-          </div>
-        </motion.header>
+      <div className="min-h-screen bg-[var(--background)] p-4 md:p-8 space-y-6 pb-16">
 
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center gap-3">
@@ -238,53 +286,166 @@ export default function AIMentorPage() {
             <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Syncing complete learning memory logs...</span>
           </div>
         ) : (
+          <>
+          {/* Unified summary hero: identity + coach advice + readiness scorecard,
+              replacing the old plain header + separate coach card + duplicate
+              "Predict Readiness" tile + separate Readiness Predictor card. */}
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 md:p-7 rounded-3xl shadow-lg shadow-indigo-600/20 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl -ml-8 -mb-8 pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row gap-6 lg:items-stretch">
+              {/* Identity + coach message */}
+              <div className="flex-1 space-y-3 min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full">
+                    <BrainCircuit className="w-3 h-3" />
+                    AI Mentor
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleExportMarkdown}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export
+                    </button>
+                    <button
+                      onClick={() => window.print()}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      Print / PDF
+                    </button>
+                  </div>
+                </div>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight">{coachAdvice.greeting}</h1>
+                <p className="text-sm font-semibold leading-relaxed text-indigo-100 max-w-2xl">
+                  {coachAdvice.body}
+                </p>
+              </div>
+
+              {/* Readiness scorecard */}
+              {readiness && (
+                <div className="lg:w-[340px] shrink-0 bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-100 flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5" /> Readiness Predictor
+                    </span>
+                    <span className="px-2 py-0.5 bg-white text-indigo-700 rounded text-[9px] font-black uppercase tracking-wider">{readiness.readinessRating}</span>
+                  </div>
+                  <div className="text-center py-1">
+                    <span className="text-3xl font-black font-mono">#{readiness.expectedRank}</span>
+                    <p className="text-[9px] font-bold text-indigo-200 uppercase tracking-wider mt-0.5">Expected Marks Rank · {readiness.confidenceInterval[0]}-{readiness.confidenceInterval[1]} Marks</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-bold pt-1 border-t border-white/15">
+                    <div className="flex flex-col">
+                      <span className="text-indigo-200 text-[9px] uppercase tracking-wider">Suggested Mock</span>
+                      <span className="text-white">{readiness.suggestedMockDate}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-indigo-200 text-[9px] uppercase tracking-wider">Revision Target</span>
+                      <span className="text-white">{readiness.revisionCompletionDate}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* AI Study Planner — rule-based recommendations derived from real
+              revision-priority/mastery/burnout data; opt-in only, nothing is
+              ever written to the calendar without an explicit click here. */}
+          {studyPlanSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                <div>
+                  <h3 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                    <CalendarPlus className="w-4 h-4 text-indigo-500" />
+                    AI Study Plan Suggestions
+                  </h3>
+                  <p className="text-[11px] font-semibold text-[var(--text-muted)] mt-0.5">Derived from your real revision priority and mistake data. Nothing is added to your calendar unless you click.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {studyPlanSuggestions.map((s, idx) => {
+                  const isAdded = addedSuggestionIds.has(s.id);
+                  return (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="bg-[var(--surface-secondary)]/50 border border-[var(--border-subtle)] rounded-xl p-4 space-y-2.5 flex flex-col justify-between"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
+                            s.priority === "High" ? "bg-rose-500/10 text-rose-500" :
+                            s.priority === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                            "bg-indigo-500/10 text-indigo-500"
+                          }`}>{s.priority} Priority</span>
+                          <span className="text-[9px] font-bold text-[var(--text-muted)] font-mono">{s.suggestedDate}</span>
+                        </div>
+                        <h4 className="font-extrabold text-xs text-[var(--text-primary)] leading-snug">{s.title}</h4>
+                        <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">{s.reason}</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.96 }}
+                        disabled={isAdded}
+                        onClick={() => handleAddSuggestionToCalendar(s)}
+                        className={`w-full flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition cursor-pointer ${
+                          isAdded
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-default"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                        }`}
+                      >
+                        {isAdded ? <><Check className="w-3.5 h-3.5" /> Added to Calendar</> : <><CalendarPlus className="w-3.5 h-3.5" /> Add to Calendar</>}
+                      </motion.button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
             {/* LEFT & CENTER COLLAPSED DUAL COLUMN */}
             <div className="lg:col-span-2 space-y-6">
-              
-              {/* Daily AI Coach Message (Part 2) */}
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.99 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 rounded-2xl shadow-lg shadow-indigo-600/20 relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-400/20 rounded-full blur-3xl -ml-8 -mb-8 pointer-events-none" />
-                <div className="relative z-10 space-y-3">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full">
-                    <Sparkles className="w-3 h-3" />
-                    Personalized Daily Advice
-                  </span>
-                  <h3 className="text-lg font-black">{coachAdvice.greeting}</h3>
-                  <p className="text-sm font-semibold leading-relaxed text-indigo-100 max-w-2xl">
-                    {coachAdvice.body}
-                  </p>
-                </div>
-              </motion.div>
 
               {/* Learning Health Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: "Predict Readiness", val: `${readiness?.expectedMarks ?? 65}%`, desc: `${readiness?.readinessRating} Level`, icon: Award, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
-                  { label: "Learning Velocity", val: `${readiness?.velocityScore ?? 50}/100`, desc: "Solving rate index", icon: TrendingUp, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20" },
-                  { label: "Spaced Revision Debt", val: `${mistakes.filter(m => !m.mastered).length} items`, desc: "Pending queue", icon: Layers, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-                  { label: "Burnout Risk", val: readiness?.burnoutRisk ?? "Low", desc: "Planner & solves density", icon: Flame, color: "text-rose-500 bg-rose-500/10 border-rose-500/20" }
+                  { label: "Learning Velocity", val: `${readiness?.velocityScore ?? 50}/100`, desc: "Solving rate index", icon: TrendingUp, badge: "bg-indigo-500/10", color: "text-indigo-500", glow: "bg-indigo-500" },
+                  { label: "Spaced Revision Debt", val: `${mistakes.filter(m => !m.mastered).length} items`, desc: "Pending queue", icon: Layers, badge: "bg-amber-500/10", color: "text-amber-500", glow: "bg-amber-500" },
+                  { label: "Burnout Risk", val: readiness?.burnoutRisk ?? "Low", desc: "Planner & solves density", icon: Flame, badge: "bg-rose-500/10", color: "text-rose-500", glow: "bg-rose-500" },
+                  { label: "Days to Target Exam", val: daysToExam !== null ? (daysToExam >= 0 ? `${daysToExam}d` : "Passed") : "Not Set", desc: daysToExam !== null ? "Countdown active" : "Set date in Calendar", icon: Calendar, badge: "bg-emerald-500/10", color: "text-emerald-500", glow: "bg-emerald-500" }
                 ].map((item, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 + idx * 0.05 }}
-                    className="bg-[var(--surface)] border border-[var(--border)] p-4 rounded-xl flex flex-col justify-between shadow-sm hover-lift"
+                    className="relative bg-[var(--surface)] border border-[var(--border)] p-4 rounded-2xl flex flex-col justify-between shadow-sm hover-lift overflow-hidden group"
                   >
-                    <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">{item.label}</span>
-                      <span className={`p-1.5 rounded-lg border ${item.color}`}><item.icon className="w-3.5 h-3.5" /></span>
+                    <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-[0.15] ${item.glow} pointer-events-none group-hover:opacity-25 transition-opacity`} />
+                    <div className={`relative w-9 h-9 rounded-xl ${item.badge} flex items-center justify-center mb-3`}>
+                      <item.icon className={`w-4.5 h-4.5 ${item.color}`} />
                     </div>
-                    <div className="mt-3">
-                      <span className="block text-lg font-black text-[var(--text-primary)]">{item.val}</span>
+                    <span className="relative text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">{item.label}</span>
+                    <div className="relative mt-1.5">
+                      <span className="block text-2xl font-black text-[var(--text-primary)] font-mono tracking-tight">{item.val}</span>
                       <span className="text-[10px] font-bold text-[var(--text-muted)]">{item.desc}</span>
                     </div>
                   </motion.div>
@@ -425,41 +586,6 @@ export default function AIMentorPage() {
               className="space-y-6"
             >
 
-              {/* Exam Readiness Predictor (Part 7) */}
-              {readiness && (
-                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
-                  <h3 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5 border-b border-[var(--border-subtle)] pb-3">
-                    <Award className="w-4 h-4 text-emerald-500" />
-                    Readiness Predictor
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl text-center space-y-1">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 block">Expected Marks Rank</span>
-                      <h4 className="text-3xl font-black text-emerald-700 dark:text-emerald-400 font-mono">#{readiness.expectedRank}</h4>
-                      <span className="text-[10px] text-emerald-600 font-bold block">Interval Range: {readiness.confidenceInterval[0]} - {readiness.confidenceInterval[1]} Marks</span>
-                    </div>
-
-                    <div className="space-y-2.5 text-xs">
-                      <div className="flex justify-between items-center py-1.5 border-b border-[var(--border-subtle)]">
-                        <span className="text-[var(--text-muted)] font-semibold">Suggested Mock Attempt Date</span>
-                        <span className="font-bold text-[var(--text-primary)] flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-indigo-500" /> {readiness.suggestedMockDate}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center py-1.5 border-b border-[var(--border-subtle)]">
-                        <span className="text-[var(--text-muted)] font-semibold">Target Revision Cycle Done</span>
-                        <span className="font-bold text-[var(--text-primary)] flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {readiness.revisionCompletionDate}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center py-1.5">
-                        <span className="text-[var(--text-muted)] font-semibold">Readiness Status</span>
-                        <span className="px-2 py-0.5 bg-emerald-500 text-white rounded text-[9px] font-black uppercase tracking-wider">{readiness.readinessRating}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Mistake Cognitive Patterns (Part 5) */}
               <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
                 <h3 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5 border-b border-[var(--border-subtle)] pb-3">
@@ -536,6 +662,7 @@ export default function AIMentorPage() {
             </motion.div>
 
           </div>
+          </>
         )}
 
       </div>
