@@ -13,6 +13,8 @@ import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { motion, AnimatePresence } from "motion/react";
 import { MathJaxContext } from "better-react-mathjax";
+import { useGoalSliderStore, GOAL_SLIDER_DEFAULT_PERCENT } from "@/store/use-goal-slider-store";
+import { computeGoalSliderResult, filterOfficialQuestions } from "@/lib/analytics/goal-slider-engine";
 
 const mathJaxConfig = {
   loader: { load: ["input/tex", "output/chtml"] },
@@ -26,6 +28,7 @@ export default function ExamSetupPage() {
   const router = useRouter();
   const { isInitialized, totalQuestions } = useDataStore();
   const { createDraft, currentDraft } = useExamStore();
+  const { targetPercent: goalTargetPercent, load: loadGoalSlider } = useGoalSliderStore();
 
   const [examType, setExamType] = useState<ExamType>("YEAR_PAPER");
 
@@ -65,11 +68,25 @@ export default function ExamSetupPage() {
   }, [aiQuestionsList]);
 
   const aiTopics = useMemo(() => {
-    const list = filterSubject && filterSubject !== "ALL" 
+    const list = filterSubject && filterSubject !== "ALL"
       ? aiQuestionsList.filter(q => q.subject === filterSubject)
       : aiQuestionsList;
     return Array.from(new Set(list.map(q => q.topic).filter(Boolean))).sort();
   }, [aiQuestionsList, filterSubject]);
+
+  useEffect(() => {
+    loadGoalSlider();
+  }, [loadGoalSlider]);
+
+  // Topics currently prioritized by the app-wide Goal Slider (Topbar), so the Topic
+  // Spotlight picker below can surface the same recommendation instead of a flat list.
+  const isGoalSliderActive = goalTargetPercent < GOAL_SLIDER_DEFAULT_PERCENT;
+  const goalRecommendedTopics = useMemo(() => {
+    if (!isInitialized || !isGoalSliderActive) return new Set<string>();
+    const officialQuestions = filterOfficialQuestions(QuestionRepository.getAllQuestions());
+    const result = computeGoalSliderResult(officialQuestions, goalTargetPercent);
+    return new Set(result.includedTopics.map((t) => t.topic));
+  }, [isInitialized, isGoalSliderActive, goalTargetPercent, totalQuestions]);
 
   // Compute dynamic grouped mapped layout tree
   const groupedAIQuestions = useMemo(() => {
@@ -806,14 +823,35 @@ export default function ExamSetupPage() {
 
                   {examType === "TOPIC_TEST" && (
                     <div className="max-w-md mt-6">
-                      <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">Target Topic</label>
+                      <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
+                        Target Topic
+                        {isGoalSliderActive && (
+                          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wide text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                            <Target className="w-2.5 h-2.5" /> Goal Slider: {goalTargetPercent}%
+                          </span>
+                        )}
+                      </label>
                       <div className="relative">
                         <CustomDropdown
                           value={selectedTopic}
                           onChange={(v) => setSelectedTopic(v)}
-                          options={availableTopics.map((t) => ({ label: t, value: t }))}
+                          options={[...availableTopics]
+                            .sort((a, b) => {
+                              const aRec = goalRecommendedTopics.has(a) ? 0 : 1;
+                              const bRec = goalRecommendedTopics.has(b) ? 0 : 1;
+                              return aRec - bRec || a.localeCompare(b);
+                            })
+                            .map((t) => ({
+                              label: goalRecommendedTopics.has(t) ? `★ ${t}` : t,
+                              value: t,
+                            }))}
                         />
                       </div>
+                      {isGoalSliderActive && (
+                        <p className="text-[10px] text-[var(--text-muted)] font-semibold mt-1.5">
+                          ★ starred topics are prioritized by your Goal Slider goal (Topbar) — sorted first.
+                        </p>
+                      )}
                     </div>
                   )}
 
