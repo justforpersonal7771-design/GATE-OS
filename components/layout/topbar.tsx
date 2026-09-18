@@ -238,8 +238,8 @@ export function Topbar() {
                     ? "text-white bg-indigo-600 shadow-sm"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]"
                 }`}
-                aria-label="AI Goal Slider"
-                title="AI Goal Slider"
+                aria-label="Focus Target"
+                title="Focus Target"
              >
                 <Target className="w-4 h-4" />
                 {targetPercent < GOAL_SLIDER_DEFAULT_PERCENT && (

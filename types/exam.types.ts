@@ -28,6 +28,16 @@ export interface CustomTestTemplate {
   blocks: CustomTestBlock[];
 }
 
+/** Tags a test/session as launched from the Focus Target syllabus-prioritizer, so the
+ * origin (target % and what it bought the learner) can be surfaced anywhere that test's
+ * data shows up later — results, dashboard history, mistakes, bookmarks, revision. */
+export interface GoalTag {
+  targetPercent: number;
+  topicsCount: number;
+  totalTopics: number;
+  marksCaptured: number;
+}
+
 export interface TestConfig {
   examType: ExamType;
   yearShift?: string;
@@ -41,6 +51,7 @@ export interface TestConfig {
   seed?: number;
   customBlocks?: CustomTestBlock[];
   isAiGenerated?: boolean;
+  goalTag?: GoalTag;
 }
 
 export interface ExamQuestion {

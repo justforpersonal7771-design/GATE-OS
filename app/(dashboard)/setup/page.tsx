@@ -827,7 +827,7 @@ export default function ExamSetupPage() {
                         Target Topic
                         {isGoalSliderActive && (
                           <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wide text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-                            <Target className="w-2.5 h-2.5" /> Goal Slider: {goalTargetPercent}%
+                            <Target className="w-2.5 h-2.5" /> Focus Target: {goalTargetPercent}%
                           </span>
                         )}
                       </label>
@@ -849,7 +849,7 @@ export default function ExamSetupPage() {
                       </div>
                       {isGoalSliderActive && (
                         <p className="text-[10px] text-[var(--text-muted)] font-semibold mt-1.5">
-                          ★ starred topics are prioritized by your Goal Slider goal (Topbar) — sorted first.
+                          ★ starred topics are prioritized by your Focus Target goal (Topbar) — sorted first.
                         </p>
                       )}
                     </div>

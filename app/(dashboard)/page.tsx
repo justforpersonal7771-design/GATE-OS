@@ -88,14 +88,6 @@ export default function Home() {
     router.push("/setup");
   };
 
-  // Past sessions only retain a lightweight summary (id/status/score), not the
-  // original ExamSessionDraft, so "practicing again" can't silently replay the
-  // exact same paper — send the student to Setup to configure a fresh one
-  // instead of spreading a nonexistent draftConfig into a broken session.
-  const handleRetryExam = () => {
-    router.push("/setup");
-  };
-
   if (!isInitialized || (loading && !dashboardMetrics)) {
     return (
       <div className="flex h-[80vh] w-full flex-col items-center justify-center bg-[var(--background)]">
@@ -221,9 +213,8 @@ export default function Home() {
           />
 
           {/* Recent Exam logs */}
-          <RecentExams 
+          <RecentExams
             recentSessions={dashboardMetrics?.recentSessions || []}
-            onRetry={handleRetryExam}
           />
 
           {/* Activity timeline logs */}

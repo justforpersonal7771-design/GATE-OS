@@ -11,6 +11,7 @@ import {
   Award, Clock, Target, AlertCircle, CheckCircle,
   XCircle, ArrowRight, Home, RefreshCw, BarChart2, ListFilter, HelpCircle, Sparkles, TrendingUp, LayoutGrid, Flag
 } from "lucide-react";
+import { GoalTagBadge } from "@/components/ui/goal-tag-badge";
 
 /** Animated count-up for a numeric value, e.g. marks or accuracy percentage. */
 function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) {
@@ -283,10 +284,15 @@ export default function ResultSummaryPage() {
             <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none" />
 
             <div className="relative z-10 flex flex-col items-center text-center gap-4">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full">
-                <Sparkles className="w-3 h-3" />
-                Evaluation Complete
-              </span>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full">
+                  <Sparkles className="w-3 h-3" />
+                  Evaluation Complete
+                </span>
+                {session.draftConfig.config.goalTag && (
+                  <GoalTagBadge tag={session.draftConfig.config.goalTag} className="bg-white/15 !text-white !border-white/20" />
+                )}
+              </div>
 
               {/* Accuracy ring */}
               <div className="relative w-28 h-28 shrink-0">

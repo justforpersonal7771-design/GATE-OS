@@ -177,6 +177,12 @@ export function GoalSliderPanel({ onClose }: { onClose: () => void }) {
         topics: topicNames,
         questionCount: Math.max(1, Math.min(launchCount, launchPool.length)),
         isAiGenerated: false,
+        goalTag: {
+          targetPercent: draftPercent,
+          topicsCount: effectiveTopics.length,
+          totalTopics: ranked.length,
+          marksCaptured: effectiveMarksCaptured,
+        },
       });
       const draft = useExamStore.getState().currentDraft;
       if (draft) {
@@ -205,7 +211,7 @@ export function GoalSliderPanel({ onClose }: { onClose: () => void }) {
               <Sparkles className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
-              <h2 className="font-black text-white text-sm sm:text-base">AI Goal Slider</h2>
+              <h2 className="font-black text-white text-sm sm:text-base">Focus Target</h2>
               <p className="text-[10px] font-bold text-white/70 uppercase tracking-wide">
                 PYQ Prioritized · High-yield topics first
               </p>

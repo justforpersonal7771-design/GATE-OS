@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { CheckCircle2, Bookmark, AlertCircle, PlayCircle, Activity } from "lucide-react";
 import { BookmarkEntry, MistakeEntry } from "@/types/study.types";
 import { RecentSessionSummary } from "@/types/analytics.types";
+import { describeTestConfig } from "@/lib/exam/describe-test-config";
 
 interface ActivityTimelineProps {
   recentSessions: RecentSessionSummary[];
@@ -30,7 +31,7 @@ export function ActivityTimeline({ recentSessions, bookmarks, mistakes }: Activi
       events.push({
         id: s.id,
         type: "exam",
-        title: s.config.name || "GATE Mock Test",
+        title: s.testConfig ? describeTestConfig(s.testConfig) : "GATE Mock Test",
         timestamp: new Date(s.updatedAt || s.startedAt || Date.now()),
         meta: s.status === "SUBMITTED" ? `Accuracy: ${s.accuracy.toFixed(0)}%` : "Practice Session",
         status: s.status

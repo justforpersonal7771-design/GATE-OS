@@ -128,6 +128,7 @@ export class AnalyticsEngine {
         return {
           id: s.id,
           config: { name: "Exam Session" },
+          testConfig: s.draftConfig.config,
           updatedAt: s.startedAt,
           status: s.status,
           startedAt: s.startedAt,
