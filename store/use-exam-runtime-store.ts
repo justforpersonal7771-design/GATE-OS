@@ -23,6 +23,7 @@ interface RuntimeState {
   clearResponse: (questionId: string) => Promise<void>;
   tickTimer: () => void;
   clearSession: () => Promise<void>;
+  resumeArchivedSession: (session: ExamSession) => Promise<void>;
 }
 
 export const useExamRuntimeStore = create<RuntimeState>((set, get) => ({
@@ -40,6 +41,14 @@ export const useExamRuntimeStore = create<RuntimeState>((set, get) => ({
   },
 
   startSession: async (draft: ExamSessionDraft) => {
+    // Don't silently lose whatever test was already in progress — archive it under its
+    // own id (findable later on the Dashboard as an incomplete/pending test) before this
+    // new session claims the single "active_session" slot.
+    const outgoing = get().activeSession;
+    if (outgoing && outgoing.status !== "SUBMITTED") {
+      await SessionManager.archiveIncomplete(outgoing);
+    }
+
     const session = SessionManager.createSessionFromDraft(draft);
     set({ activeSession: session, isHydrated: true });
     await SessionManager.serializeSession(session);
@@ -217,5 +226,18 @@ export const useExamRuntimeStore = create<RuntimeState>((set, get) => ({
   clearSession: async () => {
     set({ activeSession: null });
     await SessionManager.clearSession();
+  },
+
+  // Restores an archived incomplete test as the active session. If a different test is
+  // currently active, that one is archived first (same as startSession) rather than lost.
+  resumeArchivedSession: async (session: ExamSession) => {
+    const outgoing = get().activeSession;
+    if (outgoing && outgoing.status !== "SUBMITTED" && outgoing.id !== session.id) {
+      await SessionManager.archiveIncomplete(outgoing);
+    }
+    const resumed = { ...session, status: "PAUSED" as const };
+    set({ activeSession: resumed, isHydrated: true });
+    await SessionManager.serializeSession(resumed);
+    await SessionManager.discardIncomplete(session.id);
   },
 }));

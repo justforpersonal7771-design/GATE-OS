@@ -59,7 +59,7 @@ export function ExamTimer({ compact = false }: { compact?: boolean }) {
 
   const estFinishTime = useMemo(() => {
     const end = new Date(Date.now() + remaining * 1000);
-    return end.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
+    return end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
   }, [remaining]);
 
   const remainingRatio = TOTAL_TIME > 0 ? remaining / TOTAL_TIME : 0;
@@ -118,7 +118,7 @@ export function ExamTimer({ compact = false }: { compact?: boolean }) {
           </div>
         )}
         {compact && (
-          <span className="text-[8px] text-[var(--text-muted)] font-semibold uppercase tracking-wider mt-0.5 whitespace-nowrap">
+          <span className="hidden sm:inline text-[8px] text-[var(--text-muted)] font-semibold uppercase tracking-wider mt-0.5 whitespace-nowrap">
             End {estFinishTime}
           </span>
         )}

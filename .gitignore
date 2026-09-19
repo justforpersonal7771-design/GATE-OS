@@ -6,5 +6,5 @@ coverage/
 .env*
 !.env.example
 .env.local
-scratch/screens/
+scratch/
 .vercel

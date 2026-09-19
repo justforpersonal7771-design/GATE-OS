@@ -47,6 +47,10 @@ const MetricsStrip = dynamic(() => import("@/components/dashboard/metrics-strip"
   loading: () => <div className="skeleton-shimmer h-[170px] rounded-2xl" />
 });
 
+const IncompleteTests = dynamic(() => import("@/components/dashboard/incomplete-tests").then(m => m.IncompleteTests), {
+  ssr: false,
+});
+
 export default function Home() {
   const router = useRouter();
   const { loadRepository, isInitialized } = useDataStore();
@@ -170,6 +174,8 @@ export default function Home() {
         </motion.div>
       )}
       </AnimatePresence>
+
+      <IncompleteTests />
 
       {/* 3. Grouped metrics — Study Momentum vs Performance Signals, deliberately
           distinct from the hero's Streak/Solved/Accuracy/Mastery/Readiness cards

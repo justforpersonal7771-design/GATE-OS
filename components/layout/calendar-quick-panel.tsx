@@ -6,11 +6,19 @@ import { AnimatePresence, motion } from "motion/react";
 import { Calendar, Plus, Play, Check, X, Clock3, ChevronRight, ChevronLeft, Target } from "lucide-react";
 import { useCalendarStore } from "@/store/use-calendar-store";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
-import { toLocalDateStr } from "@/lib/utils";
+import { toLocalDateStr, formatTime12h } from "@/lib/utils";
 import { CalendarEvent } from "@/types/calendar.types";
 import { CompactCalendarView } from "./compact-calendar-view";
+import { CustomDropdown } from "@/components/ui/custom-dropdown";
 
 const TARGET_EXAM_DATE_KEY = "target_exam_date";
+const QUICK_TYPE_OPTIONS = [
+  { label: "Study", value: "Study" },
+  { label: "Revision", value: "Revision" },
+  { label: "Mock Test", value: "Mock Test" },
+  { label: "Mistakes", value: "Mistakes" },
+  { label: "Bookmarks", value: "Bookmarks" },
+];
 
 export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -204,7 +212,7 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
                     {e.title}
                   </p>
                   <p className="text-[9px] text-[var(--text-muted)] font-semibold flex items-center gap-1">
-                    <Clock3 className="w-2.5 h-2.5" /> {e.startTime || "Anytime"} · {e.studyType}
+                    <Clock3 className="w-2.5 h-2.5" /> {e.startTime ? formatTime12h(e.startTime) : "Anytime"} · {e.studyType}
                   </p>
                 </div>
                 <button
@@ -241,17 +249,14 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
                 className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <div className="flex items-center gap-2">
-                <select
-                  value={quickType}
-                  onChange={e => setQuickType(e.target.value as CalendarEvent["studyType"])}
-                  className="flex-1 px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] text-[10px] font-bold text-[var(--text-secondary)] rounded-lg outline-none cursor-pointer"
-                >
-                  <option value="Study">Study</option>
-                  <option value="Revision">Revision</option>
-                  <option value="Mock Test">Mock Test</option>
-                  <option value="Mistakes">Mistakes</option>
-                  <option value="Bookmarks">Bookmarks</option>
-                </select>
+                <div className="flex-1">
+                  <CustomDropdown
+                    value={quickType}
+                    onChange={(v) => setQuickType(v as CalendarEvent["studyType"])}
+                    options={QUICK_TYPE_OPTIONS}
+                    className="text-[10px] font-bold [&>button]:px-2.5 [&>button]:py-1.5 [&>button]:rounded-lg"
+                  />
+                </div>
                 <button
                   onClick={handleQuickAdd}
                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"

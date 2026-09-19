@@ -132,47 +132,29 @@ export default function ReviewPage() {
     <MathJaxContext config={mathJaxConfig}>
       <div className="flex flex-col h-screen w-full overflow-hidden bg-[var(--background)] font-sans">
 
-        {/* PREMIUM COMMAND BAR (Part 1 & 9) */}
-        <header className="flex-none bg-[var(--surface)] border-b border-[var(--border)] shadow-sm flex flex-col md:flex-row md:items-center justify-between px-4 py-3 sm:px-6 shrink-0 z-30 gap-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap">
-            <span className="font-extrabold text-lg text-[var(--text-primary)] tracking-tight pr-4 border-r border-[var(--border)]">
-              GATE OS <span className="text-[10px] bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider ml-2">Review Mode</span>
-            </span>
+        {/* COMMAND BAR — matches the exam session Topbar's structure: a compact
+            always-visible essentials row, plus a details row for type/marks/difficulty
+            and section/subject/topic. Logo replaces the old "GATE OS" text and, like the
+            exam session's, navigates home when clicked. */}
+        <header className="flex-none bg-[var(--surface)] border-b border-[var(--border)] shadow-sm shrink-0 z-30">
+          <div className="flex items-center justify-between px-4 py-2 sm:px-5 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                onClick={() => router.push("/")}
+                className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xs shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                title="Back to Dashboard"
+              >
+                G
+              </button>
+              <span className="text-[9px] bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400 px-2 py-1 rounded-md font-black uppercase tracking-wider shrink-0">Review Mode</span>
+              {q && (
+                <span className="text-[var(--text-primary)] bg-[var(--surface-secondary)] px-2 py-1 rounded-md border border-[var(--border)] font-mono text-[11px] shrink-0">
+                  Q<span className="text-indigo-600 dark:text-indigo-400 font-bold">{currentIndex + 1}</span><span className="text-[var(--text-muted)] font-normal">/{draftQuestions.length}</span>
+                </span>
+              )}
+            </div>
 
-            {q && (
-              <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
-                <span className="text-[var(--text-primary)] bg-[var(--surface-secondary)] px-2.5 py-1.5 rounded-lg border border-[var(--border)] shadow-sm font-mono text-xs">
-                  Q<span className="text-indigo-600 dark:text-indigo-400 font-bold mx-0.5">{currentIndex + 1}</span>
-                  <span className="text-[var(--text-muted)] font-normal">/ {draftQuestions.length}</span>
-                </span>
-                <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg border border-indigo-200/50 dark:border-indigo-900/50 shadow-sm">
-                  {q.question_type}
-                </span>
-                <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg border border-emerald-200/50 dark:border-indigo-900/50 shadow-sm">
-                  +{q.marks} / {q.question_type === "MCQ" ? `-${(q.marks / 3).toFixed(2)}` : "0"}
-                </span>
-                <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-1.5 rounded-lg border border-amber-200/50 dark:border-indigo-900/50 shadow-sm">
-                  {q.difficulty}
-                </span>
-
-                <span className="h-4 border-r border-[var(--border)] mx-1" />
-
-                <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2.5 py-1 rounded max-w-[110px] truncate inline-block text-[10px] font-bold" title={q.section}>
-                  {q.section || "General"}
-                </span>
-                <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2.5 py-1 rounded max-w-[110px] truncate inline-block text-[10px] font-bold" title={q.subject}>
-                  {q.subject || "General"}
-                </span>
-                <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2.5 py-1 rounded max-w-[110px] truncate inline-block text-[10px] font-bold" title={q.topic}>
-                  {q.topic || "General"}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-            {/* Correctness Badges directly in Command Bar */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {isAttempted ? (
                 isCorrect
                   ? <span className="px-2.5 py-1 bg-green-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm">Correct</span>
@@ -180,43 +162,71 @@ export default function ReviewPage() {
               ) : (
                 <span className="px-2.5 py-1 bg-gray-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm">Skipped</span>
               )}
-            </div>
 
-            <div className="flex items-center gap-2 border-l border-[var(--border)] pl-4 h-8 shrink-0">
-              {/* Bookmark Toggle in Command Bar */}
-              <button
-                onClick={handleBookmarkToggle}
-                className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                title="Bookmark Question"
-              >
-                {isCurrentBookmarked ? <BookmarkCheck className="w-4 h-4 text-indigo-500" /> : <Bookmark className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-1 border-l border-[var(--border)] pl-2 sm:pl-3 h-8 shrink-0">
+                <button
+                  onClick={handleBookmarkToggle}
+                  className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                  title="Bookmark Question"
+                >
+                  {isCurrentBookmarked ? <BookmarkCheck className="w-4 h-4 text-indigo-500" /> : <Bookmark className="w-4 h-4" />}
+                </button>
 
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                title="Toggle Dark Mode"
-              >
-                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
+                <button
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="hidden sm:inline-flex p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                  title="Toggle Dark Mode"
+                >
+                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
 
-              <button
-                onClick={() => router.push(`/ai-tutor?qid=${qId}`)}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition shadow-md cursor-pointer"
-                title="Explain with AI Tutor"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>AI</span>
-              </button>
+                <button
+                  onClick={() => router.push(`/ai-tutor?qid=${qId}`)}
+                  className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition shadow-md cursor-pointer"
+                  title="Explain with AI Tutor"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">AI</span>
+                </button>
 
-              <button
-                onClick={() => router.push(`/exam/results?id=${id}`)}
-                className="px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] text-[var(--text-primary)] rounded-lg transition shadow-md border border-[var(--border)] cursor-pointer"
-              >
-                Exit Review
-              </button>
+                <button
+                  onClick={() => router.push(`/exam/results?id=${id}`)}
+                  className="px-3 sm:px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)] text-[var(--text-primary)] rounded-lg transition shadow-md border border-[var(--border)] cursor-pointer"
+                >
+                  Exit
+                </button>
+              </div>
             </div>
           </div>
+
+          {q && (
+            <div className="flex flex-col gap-1.5 px-4 pb-2.5 sm:px-5">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center rounded-md border border-[var(--border)] overflow-hidden shrink-0 divide-x divide-[var(--border)] shadow-sm text-[10px] font-black uppercase tracking-wider">
+                  <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 px-2 py-1">
+                    {q.question_type}
+                  </span>
+                  <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-1 font-mono normal-case">
+                    +{q.marks}/{q.question_type === "MCQ" ? `-${(q.marks / 3).toFixed(2)}` : "0"}
+                  </span>
+                  <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-1">
+                    {q.difficulty}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
+                <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={q.section}>
+                  {q.section || "General"}
+                </span>
+                <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={q.subject}>
+                  {q.subject || "General"}
+                </span>
+                <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={q.topic}>
+                  {q.topic || "General"}
+                </span>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* MAIN WORKSPACE */}

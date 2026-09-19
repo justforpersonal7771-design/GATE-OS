@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Calendar, ChevronLeft, ChevronRight, Plus, Clock, Tag, Flag, 
@@ -9,7 +10,7 @@ import {
 } from "lucide-react";
 import { CalendarEvent } from "@/types/calendar.types";
 import { useRouter } from "next/navigation";
-import { toLocalDateStr } from "@/lib/utils";
+import { toLocalDateStr, formatTime12h } from "@/lib/utils";
 import { useCalendarStore } from "@/store/use-calendar-store";
 
 export function StudyPlanner() {
@@ -17,6 +18,8 @@ export function StudyPlanner() {
   const { events, loadEvents, addEvent, updateEvent, deleteEvent } = useCalendarStore();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"month" | "week" | "day">("month");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   
   // Event creation form state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -439,7 +442,7 @@ export function StudyPlanner() {
                             {e.title}
                           </h4>
                           <p className="text-xs text-[var(--text-secondary)] font-medium mt-1">
-                            {e.startTime || "10:00"} {e.endTime ? `to ${e.endTime}` : ""} • {e.studyType}
+                            {formatTime12h(e.startTime || "10:00")} {e.endTime ? `to ${formatTime12h(e.endTime)}` : ""} • {e.studyType}
                           </p>
                         </div>
                       </div>
@@ -533,7 +536,7 @@ export function StudyPlanner() {
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-[var(--border-subtle)]/50">
                   <div className="flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-bold font-mono">
                     <Clock3 className="w-3 h-3 text-[var(--text-muted)]" />
-                    <span>{e.startTime || "10:00"}{e.endTime ? ` - ${e.endTime}` : ""}</span>
+                    <span>{formatTime12h(e.startTime || "10:00")}{e.endTime ? ` - ${formatTime12h(e.endTime)}` : ""}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -586,7 +589,9 @@ export function StudyPlanner() {
 
       </div>
 
-      {/* ADD/CREATE PLAN EVENT DIALOG */}
+      {/* ADD/CREATE PLAN EVENT DIALOG — portaled to body; this component is often rendered
+          inside a hover-transformed card, which would otherwise hijack position:fixed. */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isAddOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
@@ -830,7 +835,9 @@ export function StudyPlanner() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
     </div>
   );

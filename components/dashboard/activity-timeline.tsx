@@ -141,7 +141,7 @@ export function ActivityTimeline({ recentSessions, bookmarks, mistakes }: Activi
                             {item.title}
                           </span>
                           <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider font-mono">
-                            {item.timestamp.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                            {item.timestamp.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
                           </span>
                         </div>
                         <div className="text-[10px] text-[var(--text-secondary)] font-medium">

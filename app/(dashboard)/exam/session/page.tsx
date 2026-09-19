@@ -9,7 +9,7 @@ import { RenderableQuestion } from "@/types/question.types";
 import { QuestionRenderer } from "@/components/exam/question-renderer";
 import { MathJaxContext } from "better-react-mathjax";
 import { useStudyStore } from "@/store/use-study-store";
-import { Bookmark, BookmarkCheck, Sun, Moon, Play, Pause, AlertTriangle, ClipboardList, HelpCircle, CheckSquare, BookOpen } from "lucide-react";
+import { Bookmark, BookmarkCheck, Sun, Moon, Play, Pause, AlertTriangle, ClipboardList, HelpCircle, CheckSquare, BookOpen, ChevronDown, LayoutGrid, X } from "lucide-react";
 import { useDataStore } from "@/store/use-data-store";
 import { ExamTimer } from "@/components/exam/exam-timer";
 import { QuestionPalette } from "@/components/exam/question-palette";
@@ -48,6 +48,7 @@ export default function ExamSessionPage() {
   const saveResponse = useExamRuntimeStore((state) => state.saveResponse);
   const toggleMarkForReview = useExamRuntimeStore((state) => state.toggleMarkForReview);
   const clearResponseAction = useExamRuntimeStore((state) => state.clearResponse);
+  const clearSession = useExamRuntimeStore((state) => state.clearSession);
   
   const { bookmarks, addBookmark, removeBookmark, loadStudyData } = useStudyStore();
 
@@ -59,6 +60,8 @@ export default function ExamSessionPage() {
   const [mounted, setMounted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<RenderableQuestion | null>(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showMobilePalette, setShowMobilePalette] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -232,20 +235,108 @@ export default function ExamSessionPage() {
     <MathJaxContext config={mathJaxConfig}>
       <div className="flex flex-col h-screen w-full overflow-hidden bg-[var(--background)] font-sans">
         
-        {/* REDESIGNED COMMAND BAR (Occupies full width and displays all metadata - Part 1) */}
-        <header className="flex-none bg-[var(--surface)] border-b border-[var(--border)] shadow-sm flex flex-col md:flex-row md:items-center justify-between px-4 py-2.5 sm:px-5 shrink-0 z-30 gap-3">
-           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xs shrink-0" title="GATE OS">
-                G
-              </div>
-
-              {currentQuestion && (
-                 <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
+        {/* REDESIGNED COMMAND BAR — a compact always-visible row (logo, Q counter, timer,
+            actions) that never wraps, plus a details row (type/marks/difficulty and
+            section/subject/topic) that's always shown on sm:+ but collapses behind a
+            toggle on mobile instead of forcing three stacked rows. */}
+        <header className="flex-none bg-[var(--surface)] border-b border-[var(--border)] shadow-sm shrink-0 z-30">
+           {/* Row 1: essentials — always visible, never wraps. Both sides are shrink-0 so
+               they can never squash/overlap each other on narrow screens; if content still
+               can't fit, the row scrolls horizontally instead of breaking (graceful
+               degradation, not silent corruption). */}
+           <div className="flex items-center justify-between px-2 sm:px-5 gap-1 sm:gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                 <button
+                   onClick={async () => {
+                     if (confirm("Leave this exam? It will be paused and saved so you can resume later.")) {
+                       await pauseSession();
+                       router.push("/");
+                     }
+                   }}
+                   className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xs shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                   title="Leave exam (pauses and saves progress)"
+                 >
+                   G
+                 </button>
+                 {currentQuestion && (
                     <span className="text-[var(--text-primary)] bg-[var(--surface-secondary)] px-2 py-1 rounded-md border border-[var(--border)] font-mono text-[11px] shrink-0">
                       Q<span className="text-indigo-600 dark:text-indigo-400 font-bold">{currentQuestionIndex + 1}</span><span className="text-[var(--text-muted)] font-normal">/{totalQuestions}</span>
                     </span>
+                 )}
+                 {currentQuestion && (
+                    <button
+                      onClick={() => setShowDetails(v => !v)}
+                      className="sm:hidden p-1.5 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer shrink-0"
+                      title={showDetails ? "Hide details" : "Show topic/marks details"}
+                    >
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+                    </button>
+                 )}
+              </div>
 
-                    {/* Type + Marks + Difficulty combined into one segmented pill */}
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                 <ExamTimer compact />
+
+                 <div className="flex items-center gap-0.5 sm:gap-1 border-l border-[var(--border)] pl-1.5 sm:pl-3 h-8 shrink-0">
+                   <button
+                     onClick={() => setShowMobilePalette(true)}
+                     className="lg:hidden p-1 sm:p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition relative"
+                     title="Question Grid"
+                   >
+                     <LayoutGrid className="w-4 h-4" />
+                     {stats.notAnswered > 0 && (
+                       <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 border border-[var(--surface)]" />
+                     )}
+                   </button>
+
+                   <button
+                     onClick={handleBookmarkToggle}
+                     className="hidden sm:inline-flex p-1 sm:p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                     title="Bookmark Question"
+                   >
+                     {isCurrentBookmarked ? <BookmarkCheck className="w-4 h-4 text-indigo-500" /> : <Bookmark className="w-4 h-4" />}
+                   </button>
+
+                   <button
+                     onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                     className="hidden sm:inline-flex p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                     title="Toggle Dark Mode"
+                   >
+                     {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                   </button>
+
+                   {sessionStatus === "IN_PROGRESS" ? (
+                     <button
+                       onClick={() => pauseSession()}
+                       className="p-1.5 sm:p-2 text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-400 dark:bg-amber-900/30 rounded-lg transition-colors cursor-pointer"
+                       title="Pause Exam"
+                     >
+                       <Pause className="w-4 h-4" />
+                     </button>
+                   ) : (
+                     <button
+                       onClick={() => resumeSession()}
+                       className="p-1.5 sm:p-2 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/40 rounded-lg transition-colors cursor-pointer"
+                       title="Resume Exam"
+                     >
+                       <Play className="w-4 h-4" />
+                     </button>
+                   )}
+                   <button
+                     onClick={() => setShowSubmitModal(true)}
+                     className="px-3 sm:px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg transition shadow-md cursor-pointer"
+                   >
+                     Submit
+                   </button>
+                 </div>
+              </div>
+           </div>
+
+           {/* Row 2: type/marks/difficulty + section/subject/topic — collapsible on
+               mobile, always visible from sm: up */}
+           {currentQuestion && (
+              <div className={`${showDetails ? "flex" : "hidden"} sm:flex flex-col gap-1.5 px-4 pb-2.5 sm:px-5 border-t border-[var(--border-subtle)] sm:border-t-0 pt-2 sm:pt-0`}>
+                 <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-black uppercase tracking-wider">
                     <div className="flex items-center rounded-md border border-[var(--border)] overflow-hidden shrink-0 divide-x divide-[var(--border)] shadow-sm">
                       <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 px-2 py-1">
                         {currentQuestion.question_type}
@@ -257,9 +348,8 @@ export default function ExamSessionPage() {
                         {currentQuestion.difficulty}
                       </span>
                     </div>
-
-                    <span className="h-4 border-r border-[var(--border)] mx-0.5 shrink-0" />
-
+                 </div>
+                 <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
                     <span className="bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-400 px-2 py-1 rounded inline-block" title={currentQuestion.section}>
                       {currentQuestion.section || "General"}
                     </span>
@@ -270,55 +360,8 @@ export default function ExamSessionPage() {
                       {currentQuestion.topic || "General"}
                     </span>
                  </div>
-              )}
-           </div>
-
-           <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-              <ExamTimer compact />
-
-              <div className="flex items-center gap-1.5 border-l border-[var(--border)] pl-3 h-8 shrink-0">
-                {/* Bookmark Toggle in Command Bar */}
-                <button
-                  onClick={handleBookmarkToggle}
-                  className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                  title="Bookmark Question"
-                >
-                  {isCurrentBookmarked ? <BookmarkCheck className="w-4 h-4 text-indigo-500" /> : <Bookmark className="w-4 h-4" />}
-                </button>
-
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                  title="Toggle Dark Mode"
-                >
-                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
-
-                {sessionStatus === "IN_PROGRESS" ? (
-                  <button
-                    onClick={() => pauseSession()}
-                    className="p-2 text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-400 dark:bg-amber-900/30 rounded-lg transition-colors cursor-pointer"
-                    title="Pause Exam"
-                  >
-                    <Pause className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => resumeSession()}
-                    className="p-2 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/40 rounded-lg transition-colors cursor-pointer"
-                    title="Resume Exam"
-                  >
-                    <Play className="w-4 h-4" />
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowSubmitModal(true)}
-                  className="px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg transition shadow-md cursor-pointer"
-                >
-                  Submit
-                </button>
               </div>
-           </div>
+           )}
         </header>
 
         {/* SECTION TABS ROW */}
@@ -336,9 +379,28 @@ export default function ExamSessionPage() {
                   <h3 className="text-4xl font-extrabold text-[var(--text-primary)] mb-4 tracking-tight">
                     Session Paused
                   </h3>
-                  <p className="text-[var(--text-secondary)] font-medium w-full text-center">
+                  <p className="text-[var(--text-secondary)] font-medium w-full text-center max-w-md">
                     Your timer and progress are locked. Click Resume in the top command bar to continue.
                   </p>
+                  <div className="flex items-center gap-3 mt-6">
+                    <button
+                      onClick={() => resumeSession()}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md cursor-pointer"
+                    >
+                      Resume Exam
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm("Cancel this exam? Your progress so far will be discarded and this cannot be undone.")) {
+                          await clearSession();
+                          router.push("/");
+                        }
+                      }}
+                      className="px-6 py-2.5 bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-elevated)] text-[var(--text-secondary)] font-bold rounded-xl transition cursor-pointer"
+                    >
+                      Cancel Exam
+                    </button>
+                  </div>
                 </div>
              ) : (
                 <>
@@ -438,10 +500,57 @@ export default function ExamSessionPage() {
              )}
           </div>
 
-          {/* Right Palette */}
-          <div className="w-full lg:w-[340px] flex-none border-t lg:border-t-0 lg:border-l border-[var(--border)] bg-[var(--surface)] z-20 flex flex-col h-[45vh] lg:h-full overflow-hidden">
+          {/* Right Palette — always visible as a sidebar on lg:+. On mobile it used to be
+              permanently squeezed into 45vh below the question (cramped, forced scrolling,
+              broke question rendering); now it's hidden by default and opened on demand via
+              the grid button in the command bar, as a full bottom-sheet overlay instead. */}
+          <div className="hidden lg:flex w-full lg:w-[340px] flex-none lg:border-l border-[var(--border)] bg-[var(--surface)] z-20 flex-col h-full overflow-hidden">
             <QuestionPalette />
           </div>
+
+          <AnimatePresence>
+            {showMobilePalette && (
+              <div className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowMobilePalette(false)}
+                  className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                  className="relative bg-[var(--surface)] border-t border-[var(--border)] rounded-t-2xl shadow-2xl z-10 flex flex-col max-h-[75vh] overflow-hidden"
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
+                    <span className="text-xs font-black uppercase tracking-wider text-[var(--text-secondary)]">Question Grid</span>
+                    <div className="flex items-center gap-1">
+                      {/* Bookmark is hidden from the cramped row 1 on mobile — reachable here instead. */}
+                      <button
+                        onClick={handleBookmarkToggle}
+                        className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer"
+                        title="Bookmark Question"
+                      >
+                        {isCurrentBookmarked ? <BookmarkCheck className="w-4 h-4 text-indigo-500" /> : <Bookmark className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => setShowMobilePalette(false)}
+                        className="p-1.5 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto custom-scrollbar">
+                    <QuestionPalette />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
 
         </div>
       </div>

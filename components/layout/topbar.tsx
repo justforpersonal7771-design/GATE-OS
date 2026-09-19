@@ -282,17 +282,18 @@ export function Topbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — compact anchored panel, matching the Calendar/To-Do quick panels
+          instead of a full-width banner across the whole screen. */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
-             initial={{ opacity: 0, height: 0 }}
-             animate={{ opacity: 1, height: "auto" }}
-             exit={{ opacity: 0, height: 0 }}
-             transition={{ duration: 0.2 }}
-             className="lg:hidden absolute top-16 left-0 w-full bg-[var(--surface)] border-b border-[var(--border)] shadow-xl overflow-hidden"
+          <motion.div
+             initial={{ opacity: 0, y: -8, scale: 0.98 }}
+             animate={{ opacity: 1, y: 0, scale: 1 }}
+             exit={{ opacity: 0, y: -8, scale: 0.98 }}
+             transition={{ duration: 0.15 }}
+             className="lg:hidden fixed left-4 right-4 top-16 mt-2 w-auto max-w-[280px] ml-auto bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50"
           >
-            <nav className="flex flex-col p-4 w-full">
+            <nav className="flex flex-col p-2 w-full">
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -300,13 +301,13 @@ export function Topbar() {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-bold transition-colors ${
                       isActive
                         ? "bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border-subtle)]"
                         : "text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)]"
                     }`}
                   >
-                    <item.icon className="w-4 h-4" />
+                    <item.icon className="w-4 h-4 shrink-0" />
                     {item.label}
                   </Link>
                 );

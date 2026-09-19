@@ -66,4 +66,31 @@ export class SessionManager {
   public static async clearSession(): Promise<void> {
     await IDBManager.deleteExamSession("active_session");
   }
+
+  /** Archives a still-in-progress/paused session under its own id so it isn't silently
+   * lost when a new session claims the single "active_session" slot. Distinct from
+   * saveToHistory (submitted results) — these are abandoned/incomplete attempts, kept so
+   * the student can find and resume them later. */
+  public static async archiveIncomplete(session: ExamSession): Promise<void> {
+    if (session.status === "SUBMITTED") return;
+    await IDBManager.saveExamSession({
+      id: session.id,
+      sessionData: session,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  /** Incomplete (not submitted) sessions archived via archiveIncomplete, excluding the
+   * fixed "active_session" slot itself. */
+  public static async getIncompleteSessions(): Promise<ExamSession[]> {
+    const all = await IDBManager.getAllExamSessions();
+    return all
+      .filter((r) => r.id !== "active_session")
+      .map((r) => r.sessionData as ExamSession)
+      .filter((s) => s && s.status !== "SUBMITTED");
+  }
+
+  public static async discardIncomplete(sessionId: string): Promise<void> {
+    await IDBManager.deleteExamSession(sessionId);
+  }
 }

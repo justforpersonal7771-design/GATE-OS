@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { ZoomIn, X, Maximize2 } from "lucide-react";
 
@@ -11,6 +12,11 @@ interface PremiumImageGalleryProps {
 
 export function PremiumImageGallery({ urls, altText }: PremiumImageGalleryProps) {
   const [activeZoomUrl, setActiveZoomUrl] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Classification for dark mode inversion
   const getProfileClass = (url: string, alt: string) => {
@@ -93,43 +99,53 @@ export function PremiumImageGallery({ urls, altText }: PremiumImageGalleryProps)
         })}
       </div>
 
-      {/* ZOOM LIGHTBOX MODAL */}
-      <AnimatePresence>
-        {activeZoomUrl && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 md:px-8">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setActiveZoomUrl(null)}
-              className="absolute inset-0 bg-black/85 backdrop-blur-md"
-            />
-
-            {/* Close Button */}
-            <button
-              onClick={() => setActiveZoomUrl(null)}
-              className="absolute top-4 right-4 z-10 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full border border-white/10 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* High Resolution Zoom Image */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative max-w-full max-h-[85vh] z-10 p-2 overflow-hidden flex items-center justify-center"
-            >
-              <img
-                src={activeZoomUrl}
-                alt="Zoomed Content"
-                className={`max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl select-none ${getProfileClass(activeZoomUrl, altText)}`}
+      {/* ZOOM LIGHTBOX MODAL — portaled to document.body. This image gallery can be
+          rendered anywhere content shows up (question cards, bookmarks, mistakes lists),
+          many of which sit inside a motion.div with a whileHover transform. A transformed
+          ancestor becomes the containing block for position:fixed descendants, which was
+          making this "fullscreen" lightbox render relative to that card instead of the
+          viewport — appearing over the wrong images/Topbar instead of truly fullscreen.
+          Portaling to body sidesteps the whole class of bug regardless of where this
+          component is mounted. */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {activeZoomUrl && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 md:px-8">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setActiveZoomUrl(null)}
+                className="absolute inset-0 bg-black/85 backdrop-blur-md"
               />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setActiveZoomUrl(null)}
+                className="absolute top-4 right-4 z-10 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full border border-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* High Resolution Zoom Image */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="relative max-w-full max-h-[85vh] z-10 p-2 overflow-hidden flex items-center justify-center"
+              >
+                <img
+                  src={activeZoomUrl}
+                  alt="Zoomed Content"
+                  className={`max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl select-none ${getProfileClass(activeZoomUrl, altText)}`}
+                />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
