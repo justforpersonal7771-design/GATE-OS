@@ -10,6 +10,7 @@ interface CalendarState {
   addEvent: (event: CalendarEvent) => Promise<void>;
   updateEvent: (id: string, patch: Partial<CalendarEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
+  reorderEvents: (draggedId: string, targetId: string) => Promise<void>;
 }
 
 // Calendar events are still persisted as a single JSON blob under the
@@ -58,5 +59,17 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     const updated = get().events.filter(e => e.id !== id);
     set({ events: updated });
     await IDBManager.saveCalendarEvents(updated);
+  },
+
+  reorderEvents: async (draggedId, targetId) => {
+    if (draggedId === targetId) return;
+    const events = [...get().events];
+    const fromIdx = events.findIndex(e => e.id === draggedId);
+    const toIdx = events.findIndex(e => e.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = events.splice(fromIdx, 1);
+    events.splice(toIdx, 0, moved);
+    set({ events });
+    await IDBManager.saveCalendarEvents(events);
   },
 }));

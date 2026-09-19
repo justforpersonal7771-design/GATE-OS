@@ -10,6 +10,7 @@ interface TodoState {
   addItem: (text: string, priority?: TodoItem["priority"]) => Promise<void>;
   toggleItem: (id: string) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  reorderItems: (draggedId: string, targetId: string) => Promise<void>;
 }
 
 export const useTodoStore = create<TodoState>((set, get) => ({
@@ -52,5 +53,17 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     const updated = get().items.filter((i) => i.id !== id);
     set({ items: updated });
     await IDBManager.saveTodoItems(updated);
+  },
+
+  reorderItems: async (draggedId, targetId) => {
+    if (draggedId === targetId) return;
+    const items = [...get().items];
+    const fromIdx = items.findIndex((i) => i.id === draggedId);
+    const toIdx = items.findIndex((i) => i.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = items.splice(fromIdx, 1);
+    items.splice(toIdx, 0, moved);
+    set({ items });
+    await IDBManager.saveTodoItems(items);
   },
 }));

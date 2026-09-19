@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ListTodo, Plus, Trash2, X } from "lucide-react";
+import { GripVertical, ListTodo, Plus, Trash2, X } from "lucide-react";
 import { useTodoStore } from "@/store/use-todo-store";
 import { TodoItem } from "@/types/todo.types";
 
@@ -13,9 +13,11 @@ const PRIORITY_COLORS: Record<TodoItem["priority"], string> = {
 };
 
 export function TodoQuickPanel() {
-  const { items, loadItems, addItem, toggleItem, deleteItem } = useTodoStore();
+  const { items, loadItems, addItem, toggleItem, deleteItem, reorderItems } = useTodoStore();
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   useEffect(() => {
     loadItems();
@@ -86,8 +88,24 @@ export function TodoQuickPanel() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="p-3 flex items-center gap-2.5 hover:bg-[var(--surface-secondary)]/50 transition-colors group"
+                  draggable={!item.completed}
+                  onDragStart={() => setDraggedId(item.id)}
+                  onDragEnter={() => !item.completed && setDragOverId(item.id)}
+                  onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedId && !item.completed) reorderItems(draggedId, item.id);
+                    setDraggedId(null);
+                    setDragOverId(null);
+                  }}
+                  className={`p-3 flex items-center gap-2 hover:bg-[var(--surface-secondary)]/50 transition-colors group ${
+                    dragOverId === item.id && draggedId !== item.id ? "bg-indigo-500/10" : ""
+                  } ${draggedId === item.id ? "opacity-40" : ""}`}
                 >
+                  {!item.completed && (
+                    <GripVertical className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" />
+                  )}
                   <button
                     onClick={() => toggleItem(item.id)}
                     className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors cursor-pointer ${

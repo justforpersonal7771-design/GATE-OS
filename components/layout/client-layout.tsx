@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { Topbar } from "./topbar";
 import { useDataStore } from "@/store/use-data-store";
+import { checkDueReminders } from "@/lib/notifications/reminder-scheduler";
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
@@ -37,6 +38,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         .catch((err) => console.warn("SW failed:", err));
     }
   }, [loadRepository]);
+
+  // Study-event reminders are fully opt-in (per-event reminderToggle + startTime);
+  // poll every 30s rather than scheduling per-event setTimeouts since the tab may be
+  // closed/reopened at any point between now and a reminder's scheduled time.
+  useEffect(() => {
+    checkDueReminders();
+    const intervalId = setInterval(checkDueReminders, 30000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Global key listener for Ctrl+K command palette
   useEffect(() => {

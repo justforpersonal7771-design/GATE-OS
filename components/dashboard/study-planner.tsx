@@ -12,14 +12,17 @@ import { CalendarEvent } from "@/types/calendar.types";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr, formatTime12h } from "@/lib/utils";
 import { useCalendarStore } from "@/store/use-calendar-store";
+import { requestNotificationPermission } from "@/lib/notifications/reminder-scheduler";
 
 export function StudyPlanner() {
   const router = useRouter();
-  const { events, loadEvents, addEvent, updateEvent, deleteEvent } = useCalendarStore();
+  const { events, loadEvents, addEvent, updateEvent, deleteEvent, reorderEvents } = useCalendarStore();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"month" | "week" | "day">("month");
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+  const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
+  const [dragOverEventId, setDragOverEventId] = useState<string | null>(null);
   
   // Event creation form state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -489,9 +492,22 @@ export function StudyPlanner() {
             </div>
           ) : (
             selectedDayEvents.map(e => (
-              <div 
+              <div
                 key={e.id}
-                className="p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-2xl flex flex-col justify-between gap-3 shadow-sm hover:border-[var(--border)] transition-colors group relative"
+                draggable
+                onDragStart={() => setDraggedEventId(e.id)}
+                onDragEnter={() => setDragOverEventId(e.id)}
+                onDragEnd={() => { setDraggedEventId(null); setDragOverEventId(null); }}
+                onDragOver={(ev) => ev.preventDefault()}
+                onDrop={(ev) => {
+                  ev.preventDefault();
+                  if (draggedEventId) reorderEvents(draggedEventId, e.id);
+                  setDraggedEventId(null);
+                  setDragOverEventId(null);
+                }}
+                className={`p-4 bg-[var(--surface-secondary)] border border-[var(--border-subtle)] rounded-2xl flex flex-col justify-between gap-3 shadow-sm hover:border-[var(--border)] transition-colors group relative cursor-grab active:cursor-grabbing ${
+                  dragOverEventId === e.id && draggedEventId !== e.id ? "ring-2 ring-indigo-500" : ""
+                } ${draggedEventId === e.id ? "opacity-40" : ""}`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0 pr-6">
@@ -807,11 +823,21 @@ export function StudyPlanner() {
                       type="checkbox"
                       id="reminderToggle"
                       checked={newEvent.reminderToggle}
-                      onChange={e => setNewEvent({ ...newEvent, reminderToggle: e.target.checked })}
+                      onChange={async e => {
+                        const enabled = e.target.checked;
+                        if (enabled) await requestNotificationPermission();
+                        setNewEvent({
+                          ...newEvent,
+                          reminderToggle: enabled,
+                          // A reminder needs a concrete time to fire at; date-only events
+                          // have none, so promote to a start-time mode when enabling.
+                          timeRangeType: enabled && newEvent.timeRangeType === "date_only" ? "start_time" : newEvent.timeRangeType,
+                        });
+                      }}
                       className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                     />
                     <label htmlFor="reminderToggle" className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] cursor-pointer">
-                      Enable Reminder
+                      Enable Reminder {newEvent.reminderToggle && newEvent.startTime ? `@ ${formatTime12h(newEvent.startTime)}` : ""}
                     </label>
                   </div>
 

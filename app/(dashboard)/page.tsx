@@ -51,6 +51,11 @@ const IncompleteTests = dynamic(() => import("@/components/dashboard/incomplete-
   ssr: false,
 });
 
+const ExamCountdownCard = dynamic(() => import("@/components/dashboard/exam-countdown-card").then(m => m.ExamCountdownCard), {
+  ssr: false,
+  loading: () => <div className="skeleton-shimmer h-[220px] rounded-2xl" />
+});
+
 export default function Home() {
   const router = useRouter();
   const { loadRepository, isInitialized } = useDataStore();
@@ -215,8 +220,11 @@ export default function Home() {
 
         {/* Right Side (Spans 4 columns) */}
         <div className="lg:col-span-4 space-y-8 flex flex-col justify-start">
+          {/* GATE 2027 Countdown + Scheduled tests */}
+          <ExamCountdownCard />
+
           {/* Contribution Heatmap */}
-          <GithubHeatmap 
+          <GithubHeatmap
             snapshots={snapshots}
           />
 

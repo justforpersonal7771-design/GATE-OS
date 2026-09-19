@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Default GATE 2027 exam date (first day of the exam window per the official
+ * GATE 2027 schedule) used as the countdown fallback until the user overrides it. */
+export const GATE_2027_EXAM_DATE = "2027-02-13";
+
 /**
  * Formats a Date as YYYY-MM-DD using LOCAL calendar fields, not UTC.
  * Never use `date.toISOString().split("T")[0]` for day-bucketing — it
