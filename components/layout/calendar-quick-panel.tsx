@@ -102,8 +102,8 @@ export function CalendarQuickPanel({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.15 }}
-      className={`absolute right-0 top-full mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50 transition-[width] duration-200 ${
-        isExpanded ? "w-[min(520px,calc(100vw-2rem))]" : "w-[360px]"
+      className={`fixed sm:absolute left-4 right-4 sm:left-auto top-16 sm:top-full sm:right-0 mt-0 sm:mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50 transition-[width] duration-200 ${
+        isExpanded ? "sm:w-[min(520px,calc(100vw-2rem))]" : "sm:w-[360px]"
       }`}
     >
       {/* Header */}

@@ -40,7 +40,7 @@ export function TodoQuickPanel() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.15 }}
-      className="absolute right-0 top-full mt-2 w-[320px] bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50"
+      className="fixed sm:absolute left-4 right-4 sm:left-auto top-16 sm:top-full sm:right-0 mt-0 sm:mt-2 sm:w-[320px] bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-50"
     >
       <div className="relative overflow-hidden p-4 flex items-center justify-between bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700">
         <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />

@@ -20,9 +20,13 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 - [x] Recent Mock Tests don't store what the test actually was — `RecentSessionSummary.config` was hardcoded to `{name: "Exam Session"}`; now carries the real `TestConfig`, shows a working drill-down, and "Practice Again" relaunches the identical config. Verified end-to-end.
 - [x] Revision page: changing the revision-parameter selection didn't change the Dynamic Revision Queue — `getPersonalizedIntelligence()` always builds one blended queue regardless of mode; now filtered client-side by `item.type`/topic membership per selected mode.
 
+## P0 — Additional (reported after initial triage)
+
+- [x] **Dashboard/Analytics navigation felt laggy** ("slightly hanging" switching to these two). Root cause: both pages (plus Revision and AI Mentor) called the uncached `refreshAnalytics()` on every single mount, re-fetching all exam session history from IndexedDB and re-running the full analytics computation from scratch even when nothing had changed since the last visit. Switched to the existing (unused) cached `loadAnalytics()`, with explicit invalidation wired into `submitSession()` so a freshly completed exam still shows up correctly on the next visit.
+
 ## P1 — High (major UX breakage, mobile compatibility, consistency)
 
-- [ ] Calendar and To-Do quick panels are not usable/compatible on mobile. *(Taskbar #4)*
+- [x] Calendar and To-Do quick panels are not usable/compatible on mobile. Root cause: both panels used `absolute right-0` positioned relative to their own small trigger button, which sits left-of-center in the mobile icon cluster — not near the viewport's right edge like on desktop — so a right-anchored panel overflowed far off the left edge of the screen (confirmed: `x: -166px` for a 358px-wide panel on a 390px viewport) regardless of width capping. Fixed by switching to `fixed left-4 right-4` (viewport-anchored, not button-anchored) below the `sm` breakpoint, reverting to the original button-anchored `absolute right-0` behavior at `sm:` and above. Verified both panels fully visible/readable at iPhone 13 width. *(Taskbar #4)*
 - [ ] Calendar's dropdowns use old browser-native `<select>` styling instead of the app's premium `CustomDropdown`. *(Taskbar #5)*
 - [ ] Mobile hamburger menu dropdown takes the full width instead of being a compact anchored panel like the Calendar/To-Do quick panels. *(Taskbar #6)*
 - [ ] Fullscreen icon (image viewer) renders **above** the Topbar/other overlays — z-index bug. Confirmed on Mistakes Bank; audit and fix consistently across every screen that has a fullscreen/zoom image control. Topbar itself should carry the highest z-index in the app. *(Mistakes Bank; Bookmarks #9, #10)*
