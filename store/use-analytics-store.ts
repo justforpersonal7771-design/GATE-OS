@@ -14,6 +14,7 @@ interface AnalyticsState {
   loadAnalytics: () => Promise<void>;
   refreshAnalytics: () => Promise<void>;
   changeRange: (range: string) => void;
+  invalidate: () => void;
 }
 
 export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
@@ -58,5 +59,12 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
 
   changeRange: (range: string) => {
     set({ selectedRange: range });
+  },
+
+  // Drop the cached metrics so the next loadAnalytics() call recomputes fresh — call this
+  // after anything that actually changes the underlying data (e.g. submitting an exam),
+  // not on every navigation to Dashboard/Analytics.
+  invalidate: () => {
+    set({ dashboardMetrics: null });
   }
 }));

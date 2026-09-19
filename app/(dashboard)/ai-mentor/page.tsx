@@ -24,7 +24,7 @@ import { Download } from "lucide-react";
 
 export default function AIMentorPage() {
   const { mistakes, bookmarks, loadStudyData } = useStudyStore();
-  const { dashboardMetrics, refreshAnalytics } = useAnalyticsStore();
+  const { dashboardMetrics, loadAnalytics } = useAnalyticsStore();
 
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function AIMentorPage() {
     const loadMentorData = async () => {
       setLoading(true);
       await loadStudyData();
-      await refreshAnalytics();
+      await loadAnalytics();
       await MemoryEngine.initialize();
       await loadCalendarEvents();
       const rec = await IDBManager.getMetadata("target_exam_date");
@@ -62,7 +62,7 @@ export default function AIMentorPage() {
       setLoading(false);
     };
     loadMentorData();
-  }, [loadStudyData, refreshAnalytics, loadCalendarEvents]);
+  }, [loadStudyData, loadAnalytics, loadCalendarEvents]);
 
   const daysToExam = examDate
     ? Math.round((new Date(examDate + "T00:00:00").getTime() - new Date(toLocalDateStr() + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24))

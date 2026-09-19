@@ -17,7 +17,7 @@ import { motion } from "motion/react";
 
 export default function AnalyticsDashboardPage() {
   const { isInitialized } = useDataStore();
-  const { dashboardMetrics, refreshAnalytics } = useAnalyticsStore();
+  const { dashboardMetrics, loadAnalytics } = useAnalyticsStore();
   const { mistakes, loadStudyData } = useStudyStore();
 
   const [mounted, setMounted] = useState(false);
@@ -26,7 +26,9 @@ export default function AnalyticsDashboardPage() {
 
   useEffect(() => {
     setMounted(true);
-    refreshAnalytics();
+    // Cached — recomputes only when missing or explicitly invalidated (e.g. after
+    // submitting an exam), instead of on every single navigation to this page.
+    loadAnalytics();
     loadStudyData();
 
     // Fetch Personalized Intelligence from Adaptive Learning Engine
@@ -40,7 +42,7 @@ export default function AnalyticsDashboardPage() {
         console.error(e);
         setLoadingIntel(false);
       });
-  }, [refreshAnalytics, loadStudyData]);
+  }, [loadAnalytics, loadStudyData]);
 
   if (!isInitialized || !mounted || !dashboardMetrics) {
     return (

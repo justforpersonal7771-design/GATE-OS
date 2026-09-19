@@ -71,8 +71,10 @@ export default function Home() {
 
   useEffect(() => {
     if (isInitialized) {
-      const { refreshAnalytics } = useAnalyticsStore.getState();
-      refreshAnalytics();
+      // Cached — recomputes only when missing (first visit) or explicitly invalidated
+      // (e.g. after submitting an exam), instead of on every single navigation here.
+      const { loadAnalytics } = useAnalyticsStore.getState();
+      loadAnalytics();
     }
   }, [isInitialized]);
 

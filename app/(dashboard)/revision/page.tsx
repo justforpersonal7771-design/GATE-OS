@@ -26,7 +26,7 @@ const mathJaxConfig = {
 export default function RevisionBuilderPage() {
   const router = useRouter();
   const { mistakes, bookmarks, loadStudyData } = useStudyStore();
-  const { dashboardMetrics, refreshAnalytics } = useAnalyticsStore();
+  const { dashboardMetrics, loadAnalytics } = useAnalyticsStore();
   
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"mistakes" | "bookmarks" | "weak_topics" | "ai_insights">("mistakes");
@@ -37,7 +37,7 @@ export default function RevisionBuilderPage() {
   useEffect(() => {
     setMounted(true);
     loadStudyData();
-    refreshAnalytics();
+    loadAnalytics();
 
     setLoadingIntel(true);
     LearningEngine.getPersonalizedIntelligence()
@@ -49,7 +49,7 @@ export default function RevisionBuilderPage() {
         console.error(e);
         setLoadingIntel(false);
       });
-  }, [loadStudyData, refreshAnalytics]);
+  }, [loadStudyData, loadAnalytics]);
 
   const weakTopics = useMemo(() => {
     if (!dashboardMetrics) return [];

@@ -87,6 +87,17 @@ export const useExamRuntimeStore = create<RuntimeState>((set, get) => ({
        console.error("Failed to clear draft", e);
     }
 
+    // A completed exam changes what Dashboard/Analytics show — drop the cached metrics so
+    // the next visit recomputes instead of either showing stale data or (the old behavior)
+    // recomputing unconditionally on every single navigation regardless of whether anything
+    // changed.
+    try {
+       const useAnalyticsStore = (await import("@/store/use-analytics-store")).useAnalyticsStore;
+       useAnalyticsStore.getState().invalidate();
+    } catch(e) {
+       console.error("Failed to invalidate analytics cache", e);
+    }
+
     return updated.id;
   },
 
