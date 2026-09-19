@@ -26,6 +26,36 @@ const mathJaxConfig = {
   },
 };
 
+// Fills the previously-empty right-hand space next to the (often short, 1-2 field)
+// configuration form with a genuinely useful explanation of what each deployment
+// type actually does, instead of leaving a wide blank void beside a narrow form.
+const DEPLOYMENT_TYPE_INFO: Record<ExamType, { title: string; description: string }> = {
+  YEAR_PAPER: {
+    title: "Official Year Paper",
+    description: "An unmodified replica of that year's real GATE paper — same questions, same marks distribution, same timing. Nothing is filtered or reordered, even if a Focus Target goal is active.",
+  },
+  SECTION_TEST: {
+    title: "Section Sprint",
+    description: "Every question from one exam section (e.g. General Aptitude), pulled from across all years. Good for a focused, shorter practice block on a single section.",
+  },
+  SUBJECT_TEST: {
+    title: "Subject Mastery",
+    description: "Every question tagged to one subject across all years and papers — the deepest single-subject practice pool available.",
+  },
+  TOPIC_TEST: {
+    title: "Topic Spotlight",
+    description: "Drills one specific topic within a subject. Best once Subject Mastery has surfaced a clear weak spot to isolate.",
+  },
+  CUSTOM_TEST: {
+    title: "Custom Advanced Generator",
+    description: "Full manual control over sections, subjects, difficulty mix, and question types — build an exact blueprint from scratch.",
+  },
+  GRAND_MOCK: {
+    title: "Grand Mock",
+    description: "A full-length simulated GATE paper blended across years — the closest thing to sitting the real exam.",
+  },
+};
+
 export default function ExamSetupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,6 +78,18 @@ export default function ExamSetupPage() {
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [maxAvailable, setMaxAvailable] = useState<number>(0);
   const [sourceType, setSourceType] = useState<"standard" | "ai_generated">("standard");
+
+  // Live stats for the selected Official Year Paper — the Volume field only shows for
+  // non-YEAR_PAPER modes, so this was the one deployment type with no feedback at all
+  // about what "73 questions" actually meant until you'd already generated the blueprint.
+  const paperPreviewStats = useMemo(() => {
+    if (!isInitialized || examType !== "YEAR_PAPER" || !selectedPaper) return null;
+    const questions = QuestionRepository.getPaper(selectedPaper);
+    if (questions.length === 0) return null;
+    const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
+    const estimatedMinutes = Math.round(questions.reduce((sum, q) => sum + (q.marks === 2 ? 216 : 108), 0) / 60);
+    return { count: questions.length, totalMarks, estimatedMinutes };
+  }, [isInitialized, examType, selectedPaper]);
 
   const [generationTimeMs, setGenerationTimeMs] = useState<number | null>(null);
 
@@ -877,6 +919,8 @@ export default function ExamSetupPage() {
         ) : (
           <div className="w-full flex flex-col lg:flex-row gap-8">
             <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm p-6 md:p-8">
+             <div className={examType === "CUSTOM_TEST" ? "" : "flex flex-col lg:flex-row gap-10"}>
+              <div className="flex-1 min-w-0">
               <div className="mb-8 max-w-md">
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                   Deployment Type
@@ -1011,6 +1055,45 @@ export default function ExamSetupPage() {
                   </div>
                 </div>
               )}
+              </div>
+
+              {examType !== "CUSTOM_TEST" && (
+                <div className="w-full lg:w-[260px] shrink-0 lg:border-l lg:border-[var(--border-subtle)] lg:pl-10">
+                  <div className="p-4 bg-[var(--surface-secondary)]/60 rounded-2xl border border-[var(--border-subtle)] space-y-3">
+                    <h4 className="text-xs font-extrabold uppercase tracking-widest text-indigo-500">
+                      {DEPLOYMENT_TYPE_INFO[examType].title}
+                    </h4>
+                    <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
+                      {DEPLOYMENT_TYPE_INFO[examType].description}
+                    </p>
+
+                    {examType === "YEAR_PAPER" && paperPreviewStats && (
+                      <div className="pt-3 mt-1 border-t border-[var(--border-subtle)] grid grid-cols-2 gap-2 text-center">
+                        <div>
+                          <div className="text-lg font-black text-[var(--text-primary)] font-mono">{paperPreviewStats.count}</div>
+                          <div className="text-[9px] font-bold uppercase text-[var(--text-muted)] tracking-wide">Questions</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-black text-[var(--text-primary)] font-mono">{paperPreviewStats.totalMarks}</div>
+                          <div className="text-[9px] font-bold uppercase text-[var(--text-muted)] tracking-wide">Marks</div>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="text-lg font-black text-[var(--text-primary)] font-mono">{paperPreviewStats.estimatedMinutes} min</div>
+                          <div className="text-[9px] font-bold uppercase text-[var(--text-muted)] tracking-wide">Duration</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {examType !== "YEAR_PAPER" && maxAvailable > 0 && (
+                      <div className="pt-3 mt-1 border-t border-[var(--border-subtle)] text-center">
+                        <div className="text-lg font-black text-[var(--text-primary)] font-mono">{maxAvailable}</div>
+                        <div className="text-[9px] font-bold uppercase text-[var(--text-muted)] tracking-wide">Questions Available</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+             </div>
             </div>
 
             <div className="w-full lg:w-[420px] shrink-0">

@@ -234,7 +234,7 @@ export function Topbar() {
              <button
                 onClick={() => setIsGoalSliderOpen(true)}
                 className={`relative p-2 rounded-lg transition-colors cursor-pointer ${
-                  targetPercent < GOAL_SLIDER_DEFAULT_PERCENT
+                  isGoalSliderOpen
                     ? "text-white bg-indigo-600 shadow-sm"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]"
                 }`}
@@ -242,6 +242,11 @@ export function Topbar() {
                 title="Focus Target"
              >
                 <Target className="w-4 h-4" />
+                {/* Amber dot means "a Focus Target goal is configured" — a persistent status
+                    signal, kept visually distinct from the button's own open/closed fill
+                    (previously the whole icon turned solid indigo whenever a goal was active,
+                    identical to the Calendar/To-Do buttons' "panel is open" state, which made
+                    Focus Target look permanently pressed/open even when its panel was closed). */}
                 {targetPercent < GOAL_SLIDER_DEFAULT_PERCENT && (
                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-[var(--surface)]" />
                 )}
