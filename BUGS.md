@@ -87,7 +87,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 
 ## P3 — Polish / visual
 
-- [ ] Global: replace plain white backgrounds with a tasteful gradient treatment app-wide, consistent with the existing indigo/purple premium theme.
+- [x] Global: replace plain white backgrounds with a tasteful gradient treatment app-wide, consistent with the existing indigo/purple premium theme. Added a subtle fixed ambient radial-gradient wash (indigo/purple, low opacity) to `body` in `globals.css`, themed separately for light/dark via new `--bg-gradient-accent-1/2` tokens — applies globally underneath every card surface without needing per-page changes. Verified in both themes. *(P3)*
 - [ ] App naming: current placeholder "Quanta Gatewise" — brainstorm alternatives (see Section 19.5 of the master plan for prior candidates: GATE Sherpa, MentorGATE, NeuroGATE, GATE Compass, etc.) and produce logo concepts for the user to pick from.
 
 ---

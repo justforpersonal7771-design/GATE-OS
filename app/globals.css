@@ -107,6 +107,9 @@
     --option-selected: #e0e7ff;
     --option-border: #cbd5e1;
     --option-border-selected: #6366f1;
+
+    --bg-gradient-accent-1: rgba(99, 102, 241, 0.07);
+    --bg-gradient-accent-2: rgba(168, 85, 247, 0.05);
   }
 
   .dark {
@@ -145,6 +148,9 @@
     --scrollbar-thumb: color-mix(in srgb, #a1a1aa 45%, transparent);
     --scrollbar-thumb-hover: #a1a1aa;
     --scrollbar-track: transparent;
+
+    --bg-gradient-accent-1: rgba(99, 102, 241, 0.12);
+    --bg-gradient-accent-2: rgba(168, 85, 247, 0.09);
   }
 
   * {
@@ -153,6 +159,14 @@
 
   body {
     background-color: var(--background);
+    /* Subtle ambient indigo/purple wash instead of a flat background — consistent
+       with the app's existing premium theme (hero banners, logo mark) without
+       competing with individual card surfaces, which sit on top unaffected. */
+    background-image:
+      radial-gradient(ellipse 70% 50% at 15% -10%, var(--bg-gradient-accent-1), transparent),
+      radial-gradient(ellipse 60% 45% at 100% 10%, var(--bg-gradient-accent-2), transparent),
+      radial-gradient(ellipse 55% 40% at 50% 100%, var(--bg-gradient-accent-1), transparent);
+    background-attachment: fixed;
     color: var(--text-primary);
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
