@@ -6,7 +6,7 @@ import { useDataStore } from "@/store/use-data-store";
 import { useExamStore } from "@/store/use-exam-store";
 import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
-import { ExamType, TestConfig } from "@/types/exam.types";
+import { ExamType, TestConfig, ExamSessionDraft } from "@/types/exam.types";
 import { CustomTestBuilder } from "@/components/exam/custom-test-builder";
 import { Settings, Play, ServerCog, Target, FileText, CheckCircle2, Sparkles, ChevronDown, ChevronUp, ChevronRight, Search, X } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
@@ -198,17 +198,22 @@ export default function ExamSetupPage() {
       sequence: idx + 1
     }));
 
-    const draft = {
+    const draft: ExamSessionDraft = {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       config: {
-        examType: "CUSTOM_TEST" as const,
+        examType: "CUSTOM_TEST",
         isAiGenerated: true,
-        title: testName.trim() || `AI Adaptive Session #${Date.now().toString().slice(-4)}`
-      } as any,
+        questionCount: examQuestions.length,
+      },
       questions: examQuestions,
       createdAt: new Date().toISOString()
     };
 
+    // Keep useExamStore's currentDraft in sync too — this is a hand-built draft (an
+    // explicit user-picked question list, which ExamBuilder's pool-selection can't express),
+    // not one built via createDraft(), so anything still reading useExamStore().currentDraft
+    // elsewhere doesn't see a stale/null draft for this session.
+    useExamStore.getState().loadDraft(draft.id, draft);
     await useExamRuntimeStore.getState().startSession(draft);
     router.push("/exam/session");
   };

@@ -106,6 +106,7 @@ export class AIService {
    */
   public static async generatePracticeQuestions(
     topic: string,
+    subject: string,
     count = 2,
     bypassCache = false,
     currentQuestion?: any
@@ -125,7 +126,7 @@ export class AIService {
       console.warn("Failed to retrieve sample questions for practice prompt builder context", e);
     }
 
-    const { systemInstruction, prompt } = PromptBuilder.buildPracticePrompt(compressedContext, count, samples, currentQuestion);
+    const { systemInstruction, prompt } = PromptBuilder.buildPracticePrompt(compressedContext, topic, subject, count, samples, currentQuestion);
 
     return await AIClient.request<{ questions: AIPracticeQuestion[] }>(
       `practice_${topic}_${count}`,

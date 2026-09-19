@@ -215,12 +215,14 @@ Provide the time-saving shortcut trick in JSON format.
    */
   public static buildPracticePrompt(
     context: AIContext,
+    topic: string,
+    subject: string,
     count = 2,
     samples?: any[],
     currentQuestion?: any
   ): { systemInstruction: string; prompt: string } {
     const profile = this.formatLearnerProfile(context);
-    
+
     let samplesText = "";
     if (samples && samples.length > 0) {
       samplesText = `\n\nCRITICAL: Model your generated questions exactly on the following reference GATE questions of the same topic (matching their style, depth, layout, and scientific rigor):\n` +
@@ -229,20 +231,23 @@ Provide the time-saving shortcut trick in JSON format.
 
     let currentQuestionContext = "";
     if (currentQuestion) {
-      currentQuestionContext = `\n\nCRITICAL CONTEXT: The student is currently studying this specific question in detail:\n` +
+      currentQuestionContext = `\n\nSTYLE REFERENCE ONLY — the student was viewing this specific question just before asking for practice; use it only to calibrate difficulty/style, it does NOT change what topic to generate about:\n` +
         `Question Text: ${currentQuestion.questionTextRaw || currentQuestion.question_text}\n` +
-        `Subject: ${currentQuestion.subject}\n` +
-        `Topic: ${currentQuestion.topic}\n` +
         `Difficulty: ${currentQuestion.difficulty}\n`;
     }
 
+    // A fresh nonce per call so the model doesn't default to the same "canonical" set of
+    // questions for a topic every time — the caller also bypasses the response cache for
+    // this endpoint, but the model itself should be nudged to vary angle/approach too.
+    const varietyNonce = Math.random().toString(36).slice(2, 8);
+
     const systemInstruction = `
-You are the advanced GATE OS Question Generator. 
-Create ${count} custom practice questions of the SAME category/topic as the current question.
+You are the advanced GATE OS Question Generator.
+Create ${count} custom practice questions STRICTLY on the subject "${subject}", topic "${topic}".
 The generated questions must:
-1. Focus strictly on the category/topic: "${currentQuestion?.topic || context.weakTopics[0] || 'Algorithms'}".
-2. Be associated to the context and level of the current question, but represent DIFFERENT types (e.g. MCQ, MSQ, NAT).
-3. Be application-based, challenging, and involve terminology or mixing concepts from related computer science subjects (e.g. combining Theory of Computation with Algorithms, Data Structures, or Discrete Mathematics) to make the student subject-oriented.
+1. Stay entirely within "${topic}" (within "${subject}") — do not drift into other subjects or only-loosely-related topics. Every question must be unambiguously about this exact topic.
+2. Represent DIFFERENT question types across the set (mix of MCQ, MSQ, NAT) and different difficulty angles, so the set feels varied, not eight versions of the same question.
+3. Be precise, technically rigorous, and unique from any "standard textbook" phrasing of this topic — do not simply reformat a well-known canonical example; construct a genuinely new scenario, dataset, or parameter set each time (variety seed: ${varietyNonce}).
 4. Maintain the technical rigor, mathematical depth, and LaTeX formatting (using inline LaTeX \\\\( ... \\\\) where appropriate) typical of GATE CSE questions.
 
 Output JSON matching:
@@ -274,8 +279,9 @@ null and provide "natAnswerRange": { "min": 10.5, "max": 10.5 }.
 ${profile}
 ${currentQuestionContext}
 
-Generate ${count} practice questions specifically on the category/topic: "${currentQuestion?.topic || context.weakTopics[0] || 'Algorithms'}".
-Make them interdisciplinary, application-based, and associated with the context of the current question.
+Generate ${count} practice questions strictly on subject "${subject}", topic "${topic}". Every question must be
+clearly and specifically about this topic — not a general subject overview, not a different topic in the same
+subject, and not mixed in with unrelated subjects.
 ${samplesText}
 `;
 

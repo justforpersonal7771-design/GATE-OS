@@ -382,7 +382,10 @@ export default function AITutorWorkspace() {
     if (!question) return;
     setGeneratingPractice(true);
     try {
-      const set = await PracticeGenerator.generateDiversePracticeSet(question.topic, false, question);
+      // bypassCache: true — this is an explicit user click asking for a fresh set, not a
+      // background prefetch, so a cached identical set from an earlier click would defeat
+      // the point (this was the source of "not unique" repeated practice questions).
+      const set = await PracticeGenerator.generateDiversePracticeSet(question.topic, question.subject, true, question);
       setPracticeQuestions(set);
 
       // Save each question to IndexedDB and register dynamically in repository
@@ -398,7 +401,10 @@ export default function AITutorWorkspace() {
           option_id: o.option_id,
           is_correct: correctIds.has(o.option_id),
           optionTextRaw: o.content,
-          contentAst: [{ type: "text" as const, content: o.content }]
+          // AI-generated content (LaTeX, markdown tables, bold/italic) needs the same
+          // parser as everything else, not a raw text node — that left math and tables
+          // unformatted in the AI Generated section.
+          contentAst: AIResponseParser.parse(o.content)
         })) || [];
 
         const renderableQ = {
@@ -414,7 +420,7 @@ export default function AITutorWorkspace() {
           shift: "Gen",
           year_shift: "AI Generated",
           questionTextRaw: pq.questionText,
-          contentAst: [{ type: "text" as const, content: pq.questionText }],
+          contentAst: AIResponseParser.parse(pq.questionText),
           options: compiledOptions,
           nat_answer_range: pq.natAnswerRange,
           isAiGenerated: true,

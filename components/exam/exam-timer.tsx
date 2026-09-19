@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useExamRuntimeStore } from "@/store/use-exam-runtime-store";
-import { useExamStore } from "@/store/use-exam-store";
 import { QuestionRepository } from "@/lib/repository/question-repository";
 import { Clock } from "lucide-react";
 import { motion } from "motion/react";
@@ -12,7 +11,11 @@ export function ExamTimer({ compact = false }: { compact?: boolean }) {
   const elapsed = useExamRuntimeStore((state) => state.activeSession?.elapsedSeconds || 0);
   const tickTimer = useExamRuntimeStore((state) => state.tickTimer);
   const submitSession = useExamRuntimeStore((state) => state.submitSession);
-  const { currentDraft } = useExamStore();
+  // Read straight from the active session's own draft rather than the separate useExamStore
+  // draft — that store is only populated by the standard ExamBuilder flow, so any session
+  // started from a hand-built draft (e.g. the AI Generated "Start Test" flow) left this
+  // timer with no draft to read and silently fell back to a hardcoded 3-hour duration.
+  const draftQuestions = useExamRuntimeStore((state) => state.activeSession?.draftConfig?.questions);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -27,8 +30,8 @@ export function ExamTimer({ compact = false }: { compact?: boolean }) {
   }, [status, tickTimer]);
 
   const TOTAL_TIME = useMemo(() => {
-    if (!currentDraft) return 10800; // default to 3 hours
-    return currentDraft.questions.reduce((acc, q) => {
+    if (!draftQuestions || draftQuestions.length === 0) return 10800; // default to 3 hours
+    return draftQuestions.reduce((acc, q) => {
       const questionData = QuestionRepository.getQuestionById(q.questionId);
       if (questionData) {
         if (questionData.marks === 2) return acc + 216;
@@ -37,7 +40,7 @@ export function ExamTimer({ compact = false }: { compact?: boolean }) {
       }
       return acc + 108;
     }, 0);
-  }, [currentDraft]);
+  }, [draftQuestions]);
 
   const remaining = Math.max(0, TOTAL_TIME - elapsed);
 
