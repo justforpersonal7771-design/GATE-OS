@@ -10,7 +10,7 @@ import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { MathJaxContext } from "better-react-mathjax";
 import {
   Loader2, RefreshCw, Archive, Search, ChevronLeft, ChevronRight,
-  StickyNote, AlertTriangle, Star, CheckSquare, Zap, BarChart2, Sparkles, X, Bookmark
+  StickyNote, AlertTriangle, Star, CheckSquare, Zap, BarChart2, Sparkles, X, Bookmark, Target
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
@@ -362,7 +362,15 @@ export default function MistakesPage() {
                             {repeatCount} Err
                           </span>
                         </div>
-                        <span className="text-[10px] text-[var(--text-secondary)] block truncate font-medium mt-0.5">{m.topic}</span>
+                        <span className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1 truncate font-medium mt-0.5">
+                          {m.sourceGoalTag && (
+                            <Target
+                              className="w-2.5 h-2.5 text-indigo-500 shrink-0"
+                              aria-label={`From a Focus Target ${m.sourceGoalTag.targetPercent}% goal test`}
+                            />
+                          )}
+                          <span className="truncate">{m.topic}</span>
+                        </span>
                       </button>
                     </motion.li>
                   );

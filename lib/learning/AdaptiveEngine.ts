@@ -1,5 +1,6 @@
 import { RenderableQuestion } from "@/types/question.types";
 import { MistakeEntry, BookmarkEntry } from "@/types/study.types";
+import { GoalTag } from "@/types/exam.types";
 import { toLocalDateStr } from "@/lib/utils";
 
 export interface AdaptiveRevisionItem {
@@ -14,6 +15,7 @@ export interface AdaptiveRevisionItem {
   revisionCount: number;
   lastRevised: string | null;
   nextSuggestedRevision: string;
+  sourceGoalTag?: GoalTag;
 }
 
 export class AdaptiveEngine {
@@ -151,7 +153,8 @@ export class AdaptiveEngine {
         confidencePercent: Math.round(confidence),
         revisionCount,
         lastRevised: lastRevisedStr,
-        nextSuggestedRevision: toLocalDateStr(nextSuggested)
+        nextSuggestedRevision: toLocalDateStr(nextSuggested),
+        sourceGoalTag: mistake?.sourceGoalTag || bookmark?.sourceGoalTag
       });
     });
 

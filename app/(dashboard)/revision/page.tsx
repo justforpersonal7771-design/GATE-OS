@@ -5,9 +5,9 @@ import { motion } from "motion/react";
 import { useStudyStore } from "@/store/use-study-store";
 import { useAnalyticsStore } from "@/store/use-analytics-store";
 import { useRouter } from "next/navigation";
-import { 
-  Loader2, RefreshCw, AlertCircle, Sparkles, Folder, Tag, Star, 
-  Play, BookOpen, Clock, AlertTriangle, ArrowRight, ShieldCheck 
+import {
+  Loader2, RefreshCw, AlertCircle, Sparkles, Folder, Tag, Star,
+  Play, BookOpen, Clock, AlertTriangle, ArrowRight, ShieldCheck, Target
 } from "lucide-react";
 import { LearningEngine, PersonalizedIntelligence } from "@/lib/learning/LearningEngine";
 import { AdaptiveRevisionItem } from "@/lib/learning/AdaptiveEngine";
@@ -307,7 +307,12 @@ export default function RevisionBuilderPage() {
                         className="hover:bg-[var(--surface-secondary)]/30 transition"
                       >
                         <td className="px-5 py-3.5">
-                          <span className="font-bold text-[var(--text-primary)] block text-xs truncate max-w-[180px]">{item.question.topic}</span>
+                          <span className="font-bold text-[var(--text-primary)] flex items-center gap-1 text-xs truncate max-w-[180px]">
+                            {item.sourceGoalTag && (
+                              <Target className="w-3 h-3 text-indigo-500 shrink-0" aria-label={`From a Focus Target ${item.sourceGoalTag.targetPercent}% goal test`} />
+                            )}
+                            <span className="truncate">{item.question.topic}</span>
+                          </span>
                           <span className="text-[10px] text-[var(--text-muted)] font-semibold block truncate mt-0.5">{item.question.subject}</span>
                         </td>
                         <td className="px-5 py-3.5 text-center">

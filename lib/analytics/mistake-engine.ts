@@ -6,6 +6,7 @@ export class MistakeEngine {
   public static async processSession(session: ExamSession): Promise<void> {
     const responses = Object.values(session.responses || {});
     const now = new Date().toISOString();
+    const sessionGoalTag = session.draftConfig?.config?.goalTag;
 
     for (const response of responses) {
       const question = QuestionRepository.getQuestionById(response.questionId);
@@ -49,6 +50,9 @@ export class MistakeEngine {
           existing.occurrences = (existing.occurrences || 1) + 1;
           existing.retryCount = (existing.retryCount || 0) + 1;
           existing.revisionStatus = 'Very High Priority';
+          // Only refresh the goal tag when this session actually has one — a later
+          // non-goal-scoped attempt shouldn't erase a previously recorded association.
+          if (sessionGoalTag) existing.sourceGoalTag = sessionGoalTag;
           await IDBManager.saveMistake(existing);
         } else {
           await IDBManager.saveMistake({
@@ -62,7 +66,8 @@ export class MistakeEngine {
             difficulty: question.difficulty || "Moderate",
             selectedOptions: response.selectedOptions,
             natValue: response.natValue,
-            
+            sourceGoalTag: sessionGoalTag,
+
             // New Part 7 fields
             category: "Concept Error", // Default category to classify
             occurrences: 1,

@@ -8,9 +8,9 @@ import { QuestionRepository } from "@/lib/repository/question-repository";
 import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { MathJaxContext } from "better-react-mathjax";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
-import { 
-  BookmarkMinus, Loader2, ChevronLeft, ChevronRight, StickyNote, Star, 
-  Tag, Folder, Plus, Calendar, Search, ArrowUpDown, Pin, Sparkles, Trash2, X
+import {
+  BookmarkMinus, Loader2, ChevronLeft, ChevronRight, StickyNote, Star,
+  Tag, Folder, Plus, Calendar, Search, ArrowUpDown, Pin, Sparkles, Trash2, X, Target
 } from "lucide-react";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { PersonalNotesDrawer } from "@/components/ui/personal-notes-drawer";
@@ -318,10 +318,16 @@ export default function BookmarksPage() {
                              </div>
                           </div>
                           <span className="text-[11px] text-[var(--text-secondary)] block line-clamp-1 mb-2 font-medium">{b.topic}</span>
-                          
+
                           {/* Render folders/tags inside lists */}
-                          {((b.folders && b.folders.length > 0) || (b.tags && b.tags.length > 0)) && (
+                          {((b.folders && b.folders.length > 0) || (b.tags && b.tags.length > 0) || b.sourceGoalTag) && (
                             <div className="flex flex-wrap gap-1 mt-1">
+                              {b.sourceGoalTag && (
+                                <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                  <Target className="w-2.5 h-2.5" />
+                                  {b.sourceGoalTag.targetPercent}%
+                                </span>
+                              )}
                               {(b.folders || []).map(f => (
                                 <span key={f} className="text-[9px] font-black uppercase tracking-wider bg-[var(--surface-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                   <Folder className="w-2.5 h-2.5" />

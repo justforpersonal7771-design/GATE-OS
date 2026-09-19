@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MathJaxContext } from "better-react-mathjax";
 import { useGoalSliderStore, GOAL_SLIDER_DEFAULT_PERCENT } from "@/store/use-goal-slider-store";
 import { computeGoalSliderResult, filterOfficialQuestions } from "@/lib/analytics/goal-slider-engine";
+import { GoalTagBadge } from "@/components/ui/goal-tag-badge";
 
 const mathJaxConfig = {
   loader: { load: ["input/tex", "output/chtml"] },
@@ -83,12 +84,24 @@ export default function ExamSetupPage() {
   // Topics currently prioritized by the app-wide Goal Slider (Topbar), so the Topic
   // Spotlight picker below can surface the same recommendation instead of a flat list.
   const isGoalSliderActive = goalTargetPercent < GOAL_SLIDER_DEFAULT_PERCENT;
-  const goalRecommendedTopics = useMemo(() => {
-    if (!isInitialized || !isGoalSliderActive) return new Set<string>();
+  const goalSliderResult = useMemo(() => {
+    if (!isInitialized || !isGoalSliderActive) return null;
     const officialQuestions = filterOfficialQuestions(QuestionRepository.getAllQuestions());
-    const result = computeGoalSliderResult(officialQuestions, goalTargetPercent);
-    return new Set(result.includedTopics.map((t) => t.topic));
+    return computeGoalSliderResult(officialQuestions, goalTargetPercent);
   }, [isInitialized, isGoalSliderActive, goalTargetPercent, totalQuestions]);
+
+  const goalRecommendedTopics = useMemo(
+    () => new Set((goalSliderResult?.includedTopics || []).map((t) => t.topic)),
+    [goalSliderResult]
+  );
+
+  // Rank of each in-goal topic by importance (0 = most important) — used to order a
+  // Focus-Target-scoped test's questions by priority within each difficulty tier.
+  const goalTopicPriorityRank = useMemo(() => {
+    const rank = new Map<string, number>();
+    (goalSliderResult?.includedTopics || []).forEach((t, idx) => rank.set(t.topic, idx));
+    return rank;
+  }, [goalSliderResult]);
 
   // Compute dynamic grouped mapped layout tree
   const groupedAIQuestions = useMemo(() => {
@@ -281,12 +294,17 @@ export default function ExamSetupPage() {
     if (isInitialized) {
       const repo = QuestionRepository;
       let count = 0;
+      const focusFilterActive = isGoalSliderActive && sourceType === "standard" &&
+        (examType === "SUBJECT_TEST" || examType === "SECTION_TEST" || examType === "CUSTOM_TEST");
+      const applyFocusFilter = (qs: any[]) =>
+        focusFilterActive ? qs.filter((q: any) => goalRecommendedTopics.has(q.topic)) : qs;
+
       if (examType === "SUBJECT_TEST" && selectedSubject) {
-        count = repo.getSubjectBank(selectedSubject).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
+        count = applyFocusFilter(repo.getSubjectBank(selectedSubject).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated)).length;
       } else if (examType === "TOPIC_TEST" && selectedTopic) {
         count = repo.getQuestionsByTopic(selectedTopic).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
       } else if (examType === "SECTION_TEST" && selectedSection) {
-        count = repo.getQuestionsBySection(selectedSection).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated).length;
+        count = applyFocusFilter(repo.getQuestionsBySection(selectedSection).filter(q => sourceType === "ai_generated" ? (q as any).isAiGenerated === true : !(q as any).isAiGenerated)).length;
       }
       setMaxAvailable(count);
       // Default Volume to the full available pool whenever the scope changes (subject/topic/
@@ -296,10 +314,13 @@ export default function ExamSetupPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [examType, selectedSubject, selectedTopic, selectedSection, isInitialized, sourceType]);
+  }, [examType, selectedSubject, selectedTopic, selectedSection, isInitialized, sourceType, isGoalSliderActive, goalRecommendedTopics]);
+
+  // Easy -> Medium -> Hard, so a Focus-Target-scoped test warms up before getting harder.
+  const DIFFICULTY_RANK: Record<string, number> = { Easy: 0, Moderate: 1, Medium: 1, Hard: 2 };
 
   const handleGenerate = () => {
-    const config: TestConfig = { 
+    const config: TestConfig = {
       examType,
       isAiGenerated: sourceType === "ai_generated"
     };
@@ -321,7 +342,56 @@ export default function ExamSetupPage() {
     }
 
     const start = performance.now();
-    createDraft(config);
+
+    // When Focus Target is active, Subject/Section/Custom tests should actually respect it:
+    // restrict the pool to in-goal topics and order questions easy -> medium -> hard (within
+    // a tier, higher-priority topics first) instead of a random shuffle. Deliberately excluded:
+    // YEAR_PAPER (must stay a true, unmodified replica of that year's real exam) and TOPIC_TEST
+    // (the student already picked one specific topic — filtering by the goal set here could
+    // wipe the pool out entirely if that topic isn't one of the in-goal ones).
+    const applyFocusTarget = isGoalSliderActive && sourceType === "standard" &&
+      (examType === "SUBJECT_TEST" || examType === "SECTION_TEST" || examType === "CUSTOM_TEST");
+
+    if (applyFocusTarget) {
+      let pool = examType === "SUBJECT_TEST"
+        ? QuestionRepository.getSubjectBank(selectedSubject)
+        : examType === "SECTION_TEST"
+          ? QuestionRepository.getQuestionsBySection(selectedSection)
+          : QuestionRepository.getAllQuestions();
+      pool = pool.filter(q => !(q as any).isAiGenerated);
+      pool = pool.filter(q => goalRecommendedTopics.has(q.topic));
+
+      const sorted = [...pool].sort((a, b) => {
+        const diffDelta = (DIFFICULTY_RANK[a.difficulty] ?? 1) - (DIFFICULTY_RANK[b.difficulty] ?? 1);
+        if (diffDelta !== 0) return diffDelta;
+        const rankA = goalTopicPriorityRank.get(a.topic) ?? 999;
+        const rankB = goalTopicPriorityRank.get(b.topic) ?? 999;
+        return rankA - rankB;
+      });
+
+      const finalCount = Math.min(questionCount, sorted.length);
+      const selected = sorted.slice(0, finalCount);
+      const draft: ExamSessionDraft = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        config: {
+          ...config,
+          questionCount: finalCount,
+          topics: Array.from(new Set(selected.map(q => q.topic))),
+          goalTag: goalSliderResult ? {
+            targetPercent: goalTargetPercent,
+            topicsCount: goalSliderResult.includedTopics.length,
+            totalTopics: goalSliderResult.totalTopics,
+            marksCaptured: goalSliderResult.marksCaptured,
+          } : undefined,
+        },
+        questions: selected.map((q, idx) => ({ questionId: q.question_id, sequence: idx + 1 })),
+        createdAt: new Date().toISOString(),
+      };
+      useExamStore.getState().loadDraft(draft.id, draft);
+    } else {
+      createDraft(config);
+    }
+
     setGenerationTimeMs(performance.now() - start);
   };
 
@@ -929,6 +999,7 @@ export default function ExamSetupPage() {
                        <FileText className="w-5 h-5" />
                     </div>
                     <h3 className="font-bold text-lg text-[var(--text-primary)]">Generated Blueprint</h3>
+                    {currentDraft?.config?.goalTag && <GoalTagBadge tag={currentDraft.config.goalTag} />}
                   </div>
 
                   <AnimatePresence mode="wait">

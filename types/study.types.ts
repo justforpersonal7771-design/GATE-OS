@@ -1,6 +1,11 @@
+import { GoalTag } from "./exam.types";
+
 export interface MistakeEntry {
   questionId: string;
   questionSnapshot?: any;
+  // The Focus Target goal active when this mistake was most recently made, if any —
+  // lets the UI show which mistakes trace back to a goal-scoped test.
+  sourceGoalTag?: GoalTag;
   firstSeen: string;
   lastReviewed: string | null;
   reviewCount: number;
@@ -37,6 +42,8 @@ export interface BookmarkEntry {
   topic: string;
   selectedOptions?: string[];
   natValue?: string;
+  // The Focus Target goal active in the session this bookmark was created during, if any.
+  sourceGoalTag?: GoalTag;
 
   // Folder & Tag Metadata for Module D
   folders?: string[];

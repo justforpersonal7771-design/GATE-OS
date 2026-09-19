@@ -38,6 +38,7 @@ export default function ExamSessionPage() {
   const totalQuestions = useExamRuntimeStore((state) => state.activeSession?.totalQuestions || 0);
   const responsesFromStore = useExamRuntimeStore((state) => state.activeSession?.responses);
   const responses = useMemo(() => responsesFromStore || {}, [responsesFromStore]);
+  const sessionGoalTag = useExamRuntimeStore((state) => state.activeSession?.draftConfig?.config?.goalTag);
 
   const pauseSession = useExamRuntimeStore((state) => state.pauseSession);
   const resumeSession = useExamRuntimeStore((state) => state.resumeSession);
@@ -219,7 +220,10 @@ export default function ExamSessionPage() {
         currentQId,
         "",
         currentQuestion.subject || "General",
-        currentQuestion.topic || "General"
+        currentQuestion.topic || "General",
+        undefined,
+        undefined,
+        sessionGoalTag ? { sourceGoalTag: sessionGoalTag } : undefined
       );
     }
   };
