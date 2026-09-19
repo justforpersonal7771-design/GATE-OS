@@ -94,7 +94,10 @@ export default function MistakesPage() {
         activeMistake,
         "",
         question.subject,
-        question.topic
+        question.topic,
+        undefined,
+        undefined,
+        { folders: ["Mistakes"] }
       );
     }
   };

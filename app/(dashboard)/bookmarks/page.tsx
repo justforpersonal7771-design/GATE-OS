@@ -10,7 +10,7 @@ import { MathJaxContext } from "better-react-mathjax";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import {
   BookmarkMinus, Loader2, ChevronLeft, ChevronRight, StickyNote, Star,
-  Tag, Folder, Plus, Calendar, Search, ArrowUpDown, Pin, Sparkles, Trash2, X, Target
+  Tag, Folder, Plus, Calendar, Search, ArrowUpDown, Pin, Sparkles, Trash2, X, Target, RefreshCw
 } from "lucide-react";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { PersonalNotesDrawer } from "@/components/ui/personal-notes-drawer";
@@ -18,6 +18,7 @@ import { FullscreenNavigation } from "@/components/ui/fullscreen-navigation";
 import { IDBManager } from "@/lib/repository/storage/idb-manager";
 import { useRouter } from "next/navigation";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
+import { useToastStore } from "@/store/use-toast-store";
 
 export default function BookmarksPage() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function BookmarksPage() {
   const [activeBookmark, setActiveBookmark] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [notesPreviewMode, setNotesPreviewMode] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,9 +55,11 @@ export default function BookmarksPage() {
     }
   }, [bookmarks, activeBookmark]);
 
-  // Aggregate unique folders & tags across bookmarks
+  // Aggregate unique folders & tags across bookmarks — deliberately no hardcoded
+  // seed set; every folder here is either auto-assigned by where the bookmark was
+  // created (Test/Review/Mistakes/AI Tutor/Shortcuts) or user-created via "+ folder".
   const uniqueFolders = useMemo(() => {
-    const foldersSet = new Set<string>(["Algorithms", "Revision", "Formula", "Interview", "Exam Day", "Quick Revision"]);
+    const foldersSet = new Set<string>();
     bookmarks.forEach(b => {
       if (b.folders) b.folders.forEach(f => foldersSet.add(f));
     });
@@ -95,6 +99,16 @@ export default function BookmarksPage() {
       });
     }
     setEditFolderInput("");
+  };
+
+  // "Move to Revision" — the Revision queue already auto-pulls in every bookmark
+  // (see AdaptiveEngine), but ordered by a confidence score where High-priority
+  // bookmarks surface first. This gives a direct one-click way to boost a bookmark
+  // into that front-of-queue position and jump straight to the Revision screen.
+  const handleMoveToRevision = async (qid: string) => {
+    await handleUpdateBookmarkMeta(qid, { priority: "High" });
+    useToastStore.getState().show("Moved to top of your Revision queue");
+    router.push("/revision");
   };
 
   const handleAddTagToActive = () => {
@@ -294,6 +308,16 @@ export default function BookmarksPage() {
                     const isFav = b.favorite;
                     const isPinned = b.pinned;
                     const priorityColor = b.priority === "High" ? "bg-red-500" : b.priority === "Medium" ? "bg-amber-500" : "bg-blue-500";
+                    // Left-edge highlight reflects the bookmark's own priority instead of a
+                    // flat indigo regardless of priority — so changing priority visibly
+                    // changes the list row's accent color, not just the small dot. Full class
+                    // strings are spelled out (not templated) so Tailwind's JIT scanner picks
+                    // them up statically.
+                    const priorityRowClasses = b.priority === "High"
+                      ? (activeBookmark === b.questionId ? "border-red-500" : "border-transparent hover:border-red-500/40")
+                      : b.priority === "Low"
+                        ? (activeBookmark === b.questionId ? "border-blue-500" : "border-transparent hover:border-blue-500/40")
+                        : (activeBookmark === b.questionId ? "border-amber-500" : "border-transparent hover:border-amber-500/40");
 
                     return (
                       <motion.li
@@ -307,7 +331,7 @@ export default function BookmarksPage() {
                             setActiveBookmark(b.questionId);
                             handleUpdateBookmarkMeta(b.questionId, { recentlyViewedAt: new Date().toISOString() });
                           }}
-                          className={`w-full text-left p-4 hover:bg-[var(--surface-elevated)] transition-all duration-200 relative ${activeBookmark === b.questionId ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:border-indigo-500/30'}`}
+                          className={`w-full text-left p-4 hover:bg-[var(--surface-elevated)] transition-all duration-200 relative border-l-4 ${activeBookmark === b.questionId ? "bg-indigo-50/50 dark:bg-indigo-900/10 " : ""}${priorityRowClasses}`}
                         >
                           <div className="flex justify-between items-start mb-1 gap-2">
                              <span className="font-bold text-[var(--text-primary)] text-xs line-clamp-1">{b.subject}</span>
@@ -317,7 +341,12 @@ export default function BookmarksPage() {
                                <span className={`w-1.5 h-1.5 rounded-full ${priorityColor}`} title={`${b.priority || 'Medium'} Priority`} />
                              </div>
                           </div>
-                          <span className="text-[11px] text-[var(--text-secondary)] block line-clamp-1 mb-2 font-medium">{b.topic}</span>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-[11px] text-[var(--text-secondary)] line-clamp-1 font-medium">{b.topic}</span>
+                            <span className="text-[9px] text-[var(--text-muted)] font-bold font-mono shrink-0" title={new Date(b.createdAt).toLocaleString()}>
+                              {new Date(b.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            </span>
+                          </div>
 
                           {/* Render folders/tags inside lists */}
                           {((b.folders && b.folders.length > 0) || (b.tags && b.tags.length > 0) || b.sourceGoalTag) && (
@@ -426,6 +455,14 @@ export default function BookmarksPage() {
                   </button>
 
                   <button
+                    onClick={() => handleMoveToRevision(activeBookmark)}
+                    className="p-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-emerald-500 hover:border-emerald-500/30 rounded-lg transition cursor-pointer flex items-center justify-center shrink-0"
+                    title="Move to Revision (boosts priority + jumps to Revision queue)"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+
+                  <button
                     onClick={() => {
                       const nextVal = !isNotesOpen;
                       setIsNotesOpen(nextVal);
@@ -472,7 +509,7 @@ export default function BookmarksPage() {
                   {(activeEntry.folders || []).map(folder => (
                     <span key={folder} className="text-[10px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-md flex items-center gap-1">
                       <span>{folder}</span>
-                      <button 
+                      <button
                         onClick={() => handleUpdateBookmarkMeta(activeBookmark, { folders: (activeEntry.folders || []).filter(f => f !== folder) })}
                         className="hover:text-red-500 font-bold ml-1"
                       >
@@ -481,8 +518,8 @@ export default function BookmarksPage() {
                     </span>
                   ))}
                   <div className="flex items-center gap-1 ml-2">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Add folder..."
                       value={editFolderInput}
                       onChange={(e) => setEditFolderInput(e.target.value)}
@@ -493,6 +530,18 @@ export default function BookmarksPage() {
                       <Plus className="w-3 h-3 text-[var(--text-secondary)]" />
                     </button>
                   </div>
+                  {uniqueFolders.length > 0 && (
+                    <div className="flex items-center gap-1 ml-1">
+                      <span className="text-[9px] font-black uppercase text-[var(--text-muted)]">Move to:</span>
+                      <CustomDropdown
+                        value=""
+                        onChange={(val) => val && handleUpdateBookmarkMeta(activeBookmark, { folders: [val] })}
+                        options={uniqueFolders.map(f => ({ label: f, value: f }))}
+                        placeholder="Choose..."
+                        className="text-[10px] w-32 font-bold [&>button]:py-1"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Current tags list & insertion form */}
@@ -654,29 +703,54 @@ export default function BookmarksPage() {
                 <StickyNote className="w-4 h-4" />
                 <span>Personal Notes</span>
               </div>
-              <button
-                onClick={() => setIsNotesOpen(false)}
-                className="p-1 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setNotesPreviewMode(prev => !prev)}
+                  className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition cursor-pointer ${
+                    notesPreviewMode ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                  title="Toggle rendered markdown preview"
+                >
+                  {notesPreviewMode ? "Editing" : "Preview"}
+                </button>
+                <button
+                  onClick={() => setIsNotesOpen(false)}
+                  className="p-1 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-4 flex flex-col gap-3">
+            {/* Content — toggles between a raw textarea (markdown/LaTeX source) and a
+                rendered chat-bubble style preview using the same AstNodeRenderer pipeline
+                already used for AI shortcuts/observations elsewhere on this page. */}
+            <div className="flex-1 p-4 flex flex-col gap-3 min-h-0">
               <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-extrabold">
                 Add formulas, shortcuts, hints, or personal notes to this question.
               </p>
-              <textarea
-                value={activeEntry.notes || ""}
-                onChange={async (e) => {
-                  const notes = e.target.value;
-                  const { updateBookmarkNotes } = useStudyStore.getState();
-                  await updateBookmarkNotes(activeBookmark, notes);
-                }}
-                placeholder="Write your note here... (Changes are saved automatically)"
-                className="w-full flex-1 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)]/50 text-[var(--text-primary)] focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-none text-xs font-semibold leading-relaxed"
-              />
+              {notesPreviewMode ? (
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  {activeEntry.notes?.trim() ? (
+                    <div className="p-3.5 rounded-2xl rounded-tl-sm bg-amber-500/10 border border-amber-500/20 text-xs font-semibold leading-relaxed text-[var(--text-primary)]">
+                      <AstNodeRenderer nodes={AIResponseParser.parse(activeEntry.notes)} />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[var(--text-muted)] font-semibold text-center py-8">Nothing to preview yet.</p>
+                  )}
+                </div>
+              ) : (
+                <textarea
+                  value={activeEntry.notes || ""}
+                  onChange={async (e) => {
+                    const notes = e.target.value;
+                    const { updateBookmarkNotes } = useStudyStore.getState();
+                    await updateBookmarkNotes(activeBookmark, notes);
+                  }}
+                  placeholder="Write your note here (Markdown & LaTeX supported)... changes are saved automatically"
+                  className="w-full flex-1 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)]/50 text-[var(--text-primary)] focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-none text-xs font-semibold leading-relaxed"
+                />
+              )}
             </div>
 
             {/* Footer */}

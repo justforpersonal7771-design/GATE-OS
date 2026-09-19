@@ -226,7 +226,7 @@ export default function ExamSessionPage() {
         currentQuestion.topic || "General",
         undefined,
         undefined,
-        sessionGoalTag ? { sourceGoalTag: sessionGoalTag } : undefined
+        { folders: ["Test"], ...(sessionGoalTag ? { sourceGoalTag: sessionGoalTag } : {}) }
       );
     }
   };

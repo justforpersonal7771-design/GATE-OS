@@ -79,7 +79,7 @@ export default function ReviewPage() {
     if (isBookmarked) {
       await removeBookmark(q.question_id);
     } else {
-      await addBookmark(q.question_id, "", q.subject, q.topic);
+      await addBookmark(q.question_id, "", q.subject, q.topic, undefined, undefined, { folders: ["Review"] });
     }
   };
 
@@ -119,7 +119,7 @@ export default function ReviewPage() {
     } else if (currentMistake) {
       await updateMistakeNotes(qId, newNotes);
     } else {
-      await addBookmark(qId, newNotes, q?.subject || "", q?.topic || "");
+      await addBookmark(qId, newNotes, q?.subject || "", q?.topic || "", undefined, undefined, { folders: ["Review"] });
     }
   };
 

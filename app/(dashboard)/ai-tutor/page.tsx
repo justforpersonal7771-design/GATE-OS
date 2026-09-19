@@ -84,6 +84,7 @@ export default function AITutorWorkspace() {
   const [practiceQuestions, setPracticeQuestions] = useState<AIPracticeQuestion[]>([]);
   const [generatingPractice, setGeneratingPractice] = useState(false);
   const [personalNotes, setPersonalNotes] = useState("");
+  const [notesPreviewMode, setNotesPreviewMode] = useState(false);
   const [generatingNotes, setGeneratingNotes] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [isOutlineCollapsed, setIsOutlineCollapsed] = useState(false);
@@ -274,7 +275,10 @@ export default function AITutorWorkspace() {
         qid,
         personalNotes,
         question.subject,
-        question.topic
+        question.topic,
+        undefined,
+        undefined,
+        { folders: ["AI Tutor"] }
       );
     }
     await loadStudyData();
@@ -298,6 +302,7 @@ export default function AITutorWorkspace() {
         undefined,
         undefined,
         {
+          folders: ["AI Tutor"],
           personalObservations: personalNotes,
           aiPracticeQuestions: JSON.stringify(practiceQuestions),
           aiExplanation: explanation?.concept,
@@ -329,6 +334,7 @@ export default function AITutorWorkspace() {
       undefined,
       undefined,
       {
+        folders: ["Shortcuts"],
         isShortcutOnly: true,
         aiShortcut: explanation.shortcut
       }
@@ -1035,6 +1041,15 @@ export default function AITutorWorkspace() {
                     <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Workspace Notes</span>
                     <div className="flex gap-1.5">
                       <button
+                        onClick={() => setNotesPreviewMode(prev => !prev)}
+                        className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded border cursor-pointer ${
+                          notesPreviewMode ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--surface-secondary)]"
+                        }`}
+                        title="Toggle rendered markdown preview"
+                      >
+                        {notesPreviewMode ? "Editing" : "Preview"}
+                      </button>
+                      <button
                         onClick={handleAutoNotes}
                         disabled={generatingNotes}
                         className="text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer disabled:opacity-50"
@@ -1049,12 +1064,22 @@ export default function AITutorWorkspace() {
                       </button>
                     </div>
                   </div>
-                  <textarea
-                    placeholder="Type personal study observations, key shortcuts to keep, or notes here..."
-                    value={personalNotes}
-                    onChange={(e) => setPersonalNotes(e.target.value)}
-                    className="w-full h-24 p-2 text-xs border border-[var(--border-subtle)] rounded-lg bg-[var(--surface-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
-                  />
+                  {notesPreviewMode ? (
+                    <div className="w-full min-h-24 p-2.5 text-xs border border-[var(--border-subtle)] rounded-lg bg-[var(--surface-secondary)] text-[var(--text-primary)] font-semibold leading-relaxed">
+                      {personalNotes.trim() ? (
+                        <AstNodeRenderer nodes={AIResponseParser.parse(personalNotes)} />
+                      ) : (
+                        <span className="text-[var(--text-muted)]">Nothing to preview yet.</span>
+                      )}
+                    </div>
+                  ) : (
+                    <textarea
+                      placeholder="Type personal study observations, key shortcuts to keep, or notes here... (Markdown & LaTeX supported)"
+                      value={personalNotes}
+                      onChange={(e) => setPersonalNotes(e.target.value)}
+                      className="w-full h-24 p-2 text-xs border border-[var(--border-subtle)] rounded-lg bg-[var(--surface-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
+                    />
+                  )}
                 </div>
 
                 {/* Dynamic practice generation trigger & list */}
