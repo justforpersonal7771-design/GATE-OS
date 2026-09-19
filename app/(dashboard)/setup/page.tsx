@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDataStore } from "@/store/use-data-store";
 import { useExamStore } from "@/store/use-exam-store";
@@ -59,6 +60,8 @@ export default function ExamSetupPage() {
   const [testName, setTestName] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [expandedSetupQId, setExpandedSetupQId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Compute AI metrics dynamically
   const aiQuestionsList = useMemo(() => {
@@ -536,22 +539,6 @@ export default function ExamSetupPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="text-[10px] font-black uppercase text-[var(--text-muted)] block tracking-wide">Selected Questions</span>
-                    <span className="text-lg font-black text-indigo-500 font-mono">{selectedQIds.size} total</span>
-                  </div>
-                  
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={handleStartAITest}
-                    disabled={selectedQIds.size === 0}
-                    className="flex items-center gap-2 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-600/10"
-                  >
-                    <Play className="w-4 h-4 fill-current animate-pulse" />
-                    <span>Start Test ({selectedQIds.size})</span>
-                  </motion.button>
-                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-[var(--border-subtle)]">
@@ -849,6 +836,43 @@ export default function ExamSetupPage() {
                 })}
               </div>
             )}
+
+            {/* Persistent floating action bar — keeps the selection count and Start Test
+                action visible while scrolling through a long section/subject/topic list,
+                instead of only living in the top toolbar where it scrolled out of view. */}
+            {mounted && createPortal(
+              <AnimatePresence>
+                {selectedQIds.size > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 40 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-5 py-3.5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl"
+                  >
+                    <div>
+                      <span className="text-[9px] font-black uppercase text-[var(--text-muted)] block tracking-wide">Selected</span>
+                      <span className="text-lg font-black text-indigo-500 font-mono leading-none">{selectedQIds.size}</span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedQIds(new Set())}
+                      className="px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] rounded-lg transition cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={handleStartAITest}
+                      className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-md shadow-emerald-600/20"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Start Test</span>
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>,
+              document.body
+            )}
           </div>
         ) : (
           <div className="w-full flex flex-col lg:flex-row gap-8">
@@ -992,9 +1016,9 @@ export default function ExamSetupPage() {
             <div className="w-full lg:w-[420px] shrink-0">
                <motion.div
                  layout
-                 className={`sticky top-24 bg-[var(--surface)] border ${currentDraft ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-[var(--border)]'} rounded-3xl p-6 shadow-sm overflow-hidden transition-colors`}
+                 className={`sticky top-24 bg-[var(--surface)] border ${currentDraft ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-[var(--border)]'} rounded-3xl shadow-sm overflow-hidden transition-colors flex flex-col max-h-[calc(100vh-7rem)]`}
                >
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 p-6 pb-4 shrink-0">
                     <div className={`p-2 rounded-lg ${currentDraft ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
                        <FileText className="w-5 h-5" />
                     </div>
@@ -1010,16 +1034,17 @@ export default function ExamSetupPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="space-y-6"
+                      className="flex flex-col min-h-0"
                     >
+                      <div className="px-6 space-y-6 overflow-y-auto custom-scrollbar pb-2">
 
                       <div className="grid grid-cols-2 gap-3">
-                         <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
-                            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Questions</span>
+                         <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 rounded-2xl border border-indigo-500/20">
+                            <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-1 block">Questions</span>
                             <div className="text-3xl font-extrabold text-[var(--text-primary)]">{currentDraft.questions.length}</div>
                          </div>
-                         <div className="p-4 bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border-subtle)]">
-                            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 block">Marks</span>
+                         <div className="p-4 bg-gradient-to-br from-purple-500/10 to-purple-500/5 rounded-2xl border border-purple-500/20">
+                            <span className="text-xs font-bold text-purple-500 uppercase tracking-widest mb-1 block">Marks</span>
                             <div className="text-3xl font-extrabold text-[var(--text-primary)]">{draftStats.totalMarks}</div>
                          </div>
                       </div>
@@ -1037,23 +1062,31 @@ export default function ExamSetupPage() {
                            <span className="font-medium text-[var(--text-secondary)]">Topics</span>
                            <span className="font-bold text-[var(--text-primary)]">{draftStats.topics}</span>
                          </div>
-                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
-                           <span className="font-medium text-[var(--text-secondary)]">Question Types</span>
-                           <span className="font-bold text-[var(--text-primary)]">
-                             MCQ: {draftStats.types['MCQ'] || 0} • MSQ: {draftStats.types['MSQ'] || 0} • NAT: {draftStats.types['NAT'] || 0}
-                           </span>
-                         </div>
-                         <div className="flex justify-between items-center text-sm border-b border-[var(--border-subtle)] pb-2">
+                         <div className="flex justify-between items-center text-sm pt-1">
                            <span className="font-medium text-[var(--text-secondary)]">Est. Duration</span>
                            <span className="font-bold text-[var(--text-primary)]">{draftStats.estimatedMinutes} mins</span>
                          </div>
-                         <div className="flex justify-between items-center text-sm pt-1">
-                           <span className="font-medium text-[var(--text-secondary)]">Draft ID</span>
-                           <span className="font-mono text-xs text-[var(--text-muted)] truncate max-w-[150px]">{currentDraft.id}</span>
+                      </div>
+
+                      <div>
+                         <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">Question Types</span>
+                         <div className="flex gap-2">
+                            <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                               <span className="text-[10px] font-black uppercase tracking-wider text-blue-500">MCQ</span>
+                               <span className="text-sm font-extrabold text-[var(--text-primary)]">{draftStats.types['MCQ'] || 0}</span>
+                            </div>
+                            <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                               <span className="text-[10px] font-black uppercase tracking-wider text-violet-500">MSQ</span>
+                               <span className="text-sm font-extrabold text-[var(--text-primary)]">{draftStats.types['MSQ'] || 0}</span>
+                            </div>
+                            <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                               <span className="text-[10px] font-black uppercase tracking-wider text-teal-500">NAT</span>
+                               <span className="text-sm font-extrabold text-[var(--text-primary)]">{draftStats.types['NAT'] || 0}</span>
+                            </div>
                          </div>
                       </div>
 
-                      <div className="pt-2">
+                      <div className="pb-2">
                          <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">Difficulty Split</span>
                          <div className="flex h-3 rounded-full overflow-hidden w-full gap-0.5">
                             {['Hard', 'Medium', 'Easy'].map(d => {
@@ -1070,7 +1103,9 @@ export default function ExamSetupPage() {
                             <span>{draftStats.diffs['Hard']||0} Hard</span>
                          </div>
                       </div>
+                      </div>
 
+                      <div className="p-6 pt-4 shrink-0">
                       <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={async () => {
@@ -1081,6 +1116,7 @@ export default function ExamSetupPage() {
                       >
                         Deploy Session <Play className="w-5 h-5 fill-current" />
                       </motion.button>
+                      </div>
 
                     </motion.div>
                   ) : (
@@ -1090,7 +1126,7 @@ export default function ExamSetupPage() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--surface-secondary)]/50 p-6"
+                      className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--surface-secondary)]/50 p-6 mx-6 mb-6"
                     >
                        <ServerCog className="w-10 h-10 text-gray-300 dark:text-gray-700 mb-3" />
                        <h4 className="font-bold text-[var(--text-primary)] text-sm mb-1">Awaiting Configuration</h4>

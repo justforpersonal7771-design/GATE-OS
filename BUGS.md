@@ -40,22 +40,22 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 ## P2 — Medium (real features requested, scoped work)
 
 **Taskbar / global**
-- [ ] To-Do list: drag to reorder + prioritize tasks; same drag-reorder capability in the Study Planner. *(Taskbar #1)*
-- [ ] Study Planner: optional time field per task so a browser alarm/notification can fire at that time (e.g. 3 PM). Must be fully optional — no time set, no alarm. *(Taskbar #2)*
-- [ ] Target exam date should default to the real GATE 2027 date (Feb 13/14, per the official GATE 2027 site) for the countdown, not a placeholder. *(Taskbar #3)*
+- [x] To-Do list: drag to reorder + prioritize tasks; same drag-reorder capability in the Study Planner. Implemented via native HTML5 drag-and-drop (no new dependency) with new `reorderItems`/`reorderEvents` store actions; To-Do panel restricts dragging to pending items (grip handle on hover), Study Planner allows reordering the selected day's task list. *(Taskbar #1)*
+- [x] Study Planner: optional time field per task so a browser alarm/notification can fire at that time (e.g. 3 PM). The `reminderToggle`/`startTime` fields already existed on `CalendarEvent` but nothing read them — added `lib/notifications/reminder-scheduler.ts`, polled every 30s from `client-layout.tsx`, which fires a real `Notification` once per event/day when its scheduled time arrives (opt-in: requests permission only when the checkbox is enabled, never fires for events with no time or reminder off). *(Taskbar #2)*
+- [x] Target exam date should default to the real GATE 2027 date (Feb 13/14, per the official GATE 2027 site) for the countdown, not a placeholder. Added shared `GATE_2027_EXAM_DATE = "2027-02-13"` constant used as the Calendar panel's default until the user overrides it. *(Taskbar #3)*
 
 **Dashboard**
-- [ ] Add a "days left to GATE 2027" display and a dedicated card showing scheduled tests/dates/priorities (pulling from the Calendar data). *(Dashboard #9)*
+- [x] Add a "days left to GATE 2027" display and a dedicated card showing scheduled tests/dates/priorities (pulling from the Calendar data). New `ExamCountdownCard` in the Dashboard's right column shows the live countdown plus the next 4 upcoming (non-completed) Calendar events with their priority-colored dot and date/time. *(Dashboard #9)*
 
 **Exam Engine — Standard GATE (Setup)**
 - [x] Configuration Engine: Volume now defaults to the max available whenever subject/topic/section scope changes. *(A1)*
-- [ ] Generated Blueprint: hide the raw draft ID; redesign the question-type/count breakdown to look intentional, not a plain list. *(A2)*
-- [ ] Add color coding to the marks/questions summary on the Generated Blueprint. *(A3)*
-- [ ] Generated Blueprint layout should be fixed-height with only its internal sections scrolling, not the whole page. *(A4)*
-- [ ] Configuration Engine screen has excessive padding above/below the heading — full visual redesign pass needed (premium, "properly synchronised" per the user). *(A5)*
+- [x] Generated Blueprint: hide the raw draft ID; redesign the question-type/count breakdown to look intentional, not a plain list. Draft ID row removed entirely (was never actionable info for the user); MCQ/MSQ/NAT counts now render as three color-coded pill badges instead of a single "MCQ: X • MSQ: Y • NAT: Z" text line. *(A2)*
+- [x] Add color coding to the marks/questions summary on the Generated Blueprint. Questions card is now indigo-tinted, Marks card purple-tinted (was identical flat gray for both). *(A3)*
+- [x] Generated Blueprint layout should be fixed-height with only its internal sections scrolling, not the whole page. Panel is now `max-h-[calc(100vh-7rem)]` with its stats body in its own `overflow-y-auto` region; the header and Deploy Session button stay pinned outside the scroll area. *(A4)*
+- [ ] Configuration Engine screen has excessive padding above/below the heading — full visual redesign pass needed (premium, "properly synchronised" per the user). Deferred — lower-value pure cosmetic pass; current header spacing (`mb-6`/`pb-4`) is already fairly tight, revisit if the user flags a specific screenshot. *(A5)*
 
 **Exam Engine — AI Generated**
-- [ ] Reorganize where "Start Test" and the selected-questions list live on this screen — current placement is awkward. *(B3)*
+- [x] Reorganize where "Start Test" and the selected-questions list live on this screen — current placement is awkward. Root problem: the selection count + Start Test button lived only in the top toolbar, so they scrolled out of view while checking boxes through a long section/subject/topic list further down. Removed them from the toolbar (now just test name + search) and replaced with a persistent floating action bar (portaled, bottom-center, only visible once ≥1 question is selected) showing the live count, a Clear action, and Start Test — always reachable regardless of scroll position. *(B3)*
 
 **AI Mentor**
 - [ ] AI Study Plan Suggestions: let the user pick a target date (not just "today") and set priority, instead of a one-click add. *(AI Mentor #1)*
