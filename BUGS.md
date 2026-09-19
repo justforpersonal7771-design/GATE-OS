@@ -74,12 +74,12 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 - (queue-not-updating is P0 above)
 
 **Results / Scoreboard**
-- [ ] Left-side scoreboard card currently scrolls — should be one single non-scrolling card containing all info + action buttons (Dashboard, Retry Test, and rename "Launch Review Mode" → "Review"), with real animation/effects. *(Results #1, #2)*
-- [ ] Make the correct/wrong/marks/penalty summary cards colorful (semantic color per stat), not flat. *(Results #3)*
+- [x] Left-side scoreboard card currently scrolls — should be one single non-scrolling card containing all info + action buttons (Dashboard, Retry Test, and rename "Launch Review Mode" → "Review"), with real animation/effects. Merged the verdict hero and scoreboard into one continuous card (was two separate `rounded-3xl` cards inside a scrolling wrapper); removed the scroll wrapper entirely. Button relabeled "Review". *(Results #1, #2)*
+- [x] Make the correct/wrong/marks/penalty summary cards colorful (semantic color per stat), not flat. Each of the four metric cards now has a tinted gradient background matching its semantic color (emerald for Correct/+Marks, rose for Wrong, red for Penalty) instead of a flat gray tile for all four. *(Results #3)*
 
 **Review Mode**
 - [x] Replace "GATE OS" text with the logo mark; clicking it should go to the dashboard from anywhere, including from inside an active exam (which must first flag that exam incomplete per the P1 incomplete-tracking item above). Done as part of the P1 incomplete-tracking fix above. *(Review Mode #1)*
-- [ ] AI icon in Review Mode should behave like AI Tutor's mistake-aware response generation, not a generic explain. *(Review Mode #2)*
+- [x] AI icon in Review Mode should behave like AI Tutor's mistake-aware response generation, not a generic explain. Real root cause found: `AIService.explainQuestion`'s `currentResponse` parameter (the student's actual selected answer) was **never populated by any caller anywhere in the app**, and even when present, `buildExplainPrompt` never read it — so the "mistake-aware" behavior didn't exist yet for *any* entry point, not just Review Mode. Fixed both ends: AI Tutor's auto-fetch now looks up a matching `MistakeEntry` for the deep-linked question (present whenever that question was answered wrong in ANY graded session, including ones reached via Review Mode) and passes the real selected answer through; the prompt builder now includes a "Student's Actual Attempt" section and explicitly instructs the model to address the wrong selection by name before explaining the correct reasoning. This fixes mistake-awareness consistently across Review Mode, Mistakes, Bookmarks, and Revision — all of which funnel through the same `?qid=` auto-fetch. *(Review Mode #2)*
 - [x] Review Mode's Topbar should match the exam session Topbar exactly; strip out anything non-essential that's currently there instead. Rebuilt Review Mode's Topbar with the same 2-row structure as the exam session page. *(Review Mode #3)*
 
 **Analytics**

@@ -68,6 +68,17 @@ ${repeatedMistakesStr || "No repeated mistakes registered yet."}
 - Years: ${q.year || "None"}
 `;
 
+    // When the caller knows what the student actually selected (e.g. opened from a
+    // recorded Mistake), surface it explicitly so the explanation directly addresses
+    // their wrong answer instead of giving a generic from-scratch walkthrough.
+    const attemptDetails = context.currentResponse
+      ? `
+### Student's Actual Attempt
+- Selected option(s) / answer: ${JSON.stringify(context.currentResponse.selectedOptions?.length ? context.currentResponse.selectedOptions : (context.currentResponse.natValue ?? "None recorded"))}
+- Result: ${context.currentResponse.isCorrect ? "Correct" : "INCORRECT — this was a recorded mistake"}
+`
+      : "";
+
     let modeGuidance = "";
     if (mode === "Simple" || mode === "Beginner") {
       modeGuidance = "Explain all terms from absolute first-principles. Avoid advanced leaps. Simplify algebraic steps and keep language extremely clear (explain like I'm five).";
@@ -114,7 +125,7 @@ Explanation Format Guidance: ${modeGuidance}
 CRITICAL INSTRUCTIONS:
 1. Do not start with generic statements. Reference the student's learning history:
    - Example: "You have struggled with ${q.topic} during your last attempts. The common pattern in your mistakes is state transition faults. Before we solve this..."
-2. Output a structured JSON response matching this schema:
+${context.currentResponse && !context.currentResponse.isCorrect ? `1b. The student's actual wrong attempt is given below (Student's Actual Attempt). Directly address it: name what they selected, explain specifically why that option/value is incorrect, and only then walk through the correct reasoning. Do not give a generic explanation that ignores their real mistake.\n` : ""}2. Output a structured JSON response matching this schema:
    {
      "concept": "Name of the core concept and the learner-specific alert context",
      "steps": [
@@ -134,8 +145,8 @@ CRITICAL INSTRUCTIONS:
 ${profile}
 
 ${questionDetails}
-
-Please explain this question, referencing the learner's weaknesses, and return the structured JSON object.
+${attemptDetails}
+Please explain this question, referencing the learner's weaknesses${context.currentResponse ? " and their actual attempt above" : ""}, and return the structured JSON object.
 `;
 
     return { systemInstruction, prompt };

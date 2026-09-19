@@ -200,7 +200,22 @@ export default function AITutorWorkspace() {
       setLoading(true);
       setError(null);
       try {
-        const res = await AIService.explainQuestion(qid, undefined, explainMode, personality, false);
+        // Mistake-aware explanations: when this question has a recorded mistake, pass
+        // the student's actual wrong selection through so the AI directly addresses it
+        // (see buildExplainPrompt) instead of generating a generic from-scratch walkthrough.
+        // This is the same "mistake-aware" behavior across every entry point that deep-links
+        // here with ?qid= — Mistakes, Bookmarks, Revision, and Review Mode all funnel through
+        // this one auto-fetch effect.
+        const priorMistakeForContext = mistakes.find(m => m.questionId === qid);
+        const currentResponse = priorMistakeForContext
+          ? {
+              selectedOptions: priorMistakeForContext.selectedOptions || [],
+              natValue: priorMistakeForContext.natValue,
+              isCorrect: false,
+              timeSpentSeconds: 0,
+            }
+          : undefined;
+        const res = await AIService.explainQuestion(qid, currentResponse, explainMode, personality, false);
         if (!active) return;
 
         if (res.success && res.data) {

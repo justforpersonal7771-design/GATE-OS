@@ -270,16 +270,16 @@ export default function ResultSummaryPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
 
-        {/* Left Side: Compact hero + score breakdown & actions (Spans 5) */}
-        <div className="lg:col-span-5 flex flex-col gap-6 lg:max-h-full lg:overflow-y-auto custom-scrollbar">
-
-          {/* Compact verdict hero */}
-          <motion.div
-            initial={{ opacity: 0, y: -12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="shrink-0 relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6 shadow-xl shadow-indigo-600/20"
-          >
+        {/* Left Side: single non-scrolling card — verdict + score breakdown + actions
+            all live together instead of two stacked cards inside a scrolling column. */}
+        <motion.div
+          initial={{ opacity: 0, y: -12, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="lg:col-span-5 flex flex-col relative overflow-hidden rounded-3xl bg-[var(--surface)] border border-[var(--border)] shadow-sm"
+        >
+          {/* Verdict hero band */}
+          <div className="shrink-0 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white p-6">
             <div className="absolute top-0 right-0 w-56 h-56 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none" />
 
@@ -335,15 +335,11 @@ export default function ResultSummaryPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Scoreboard card */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="shrink-0 bg-[var(--surface)] border border-[var(--border)] rounded-3xl shadow-sm p-6 space-y-6"
-          >
+          {/* Scoreboard content — same card, continues below the hero band. Deliberately
+              not scrollable: this card now sizes to its content rather than clipping it. */}
+          <div className="p-6 space-y-6">
             <div>
               <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Attempted vs Skipped</span>
               <div className="grid grid-cols-2 gap-4">
@@ -359,23 +355,23 @@ export default function ResultSummaryPage() {
               </div>
             </div>
 
-            {/* Metric Cards */}
+            {/* Metric Cards — colorful, semantic per stat instead of a flat gray tile */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { icon: CheckCircle, label: "Correct", value: correct, color: "text-emerald-500" },
-                { icon: XCircle, label: "Wrong", value: wrong, color: "text-rose-500" },
-                { icon: TrendingUp, label: "+ Marks", value: `+${totalPositiveMarks.toFixed(1)}`, color: "text-emerald-600 dark:text-emerald-500" },
-                { icon: AlertCircle, label: "- Penalty", value: `-${totalNegativeMarks.toFixed(1)}`, color: "text-red-500 dark:text-red-400" },
+                { icon: CheckCircle, label: "Correct", value: correct, color: "text-emerald-500", bg: "bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20" },
+                { icon: XCircle, label: "Wrong", value: wrong, color: "text-rose-500", bg: "bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20" },
+                { icon: TrendingUp, label: "+ Marks", value: `+${totalPositiveMarks.toFixed(1)}`, color: "text-emerald-600 dark:text-emerald-500", bg: "bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20" },
+                { icon: AlertCircle, label: "- Penalty", value: `-${totalNegativeMarks.toFixed(1)}`, color: "text-red-500 dark:text-red-400", bg: "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20" },
               ].map((stat, idx) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 + idx * 0.05 }}
-                  className="bg-[var(--surface-secondary)] border border-[var(--border)] p-4 rounded-2xl flex flex-col items-center justify-center text-center hover-lift"
+                  className={`border p-4 rounded-2xl flex flex-col items-center justify-center text-center hover-lift ${stat.bg}`}
                 >
                   <stat.icon className={`w-5 h-5 mb-1 ${stat.color}`} />
-                  <span className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${stat.label.includes("Marks") || stat.label.includes("Penalty") ? stat.color : "text-[var(--text-muted)]"}`}>{stat.label}</span>
+                  <span className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${stat.color}`}>{stat.label}</span>
                   <span className="text-base font-black text-[var(--text-primary)] font-mono">{stat.value}</span>
                 </motion.div>
               ))}
@@ -404,12 +400,12 @@ export default function ResultSummaryPage() {
                 onClick={() => router.push(`/exam/results/review?id=${id}`)}
                 className="flex-[1.5] px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-500/10 transition flex items-center justify-center gap-2 cursor-pointer text-xs"
               >
-                <span>Launch Review Mode</span>
+                <span>Review</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
 
         {/* Right Side: Question Grid / Diagnostics Breakdown (Spans 7) */}
         <motion.div
