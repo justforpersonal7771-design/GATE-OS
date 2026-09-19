@@ -12,7 +12,7 @@ import { AstNodeRenderer } from "@/components/exam/ast-node-renderer";
 import { AIResponseParser } from "@/lib/ai/ai-response-parser";
 import {
   Sparkles, Loader2, BrainCircuit, Activity, Clock, Zap, Star, AlertTriangle,
-  HelpCircle, ShieldCheck, TrendingUp, Calendar, BookOpen, Layers, CheckCircle2, Flame, Award, CalendarPlus, Check
+  HelpCircle, ShieldCheck, TrendingUp, Calendar, BookOpen, Layers, CheckCircle2, Flame, Award, CalendarPlus, Check, Search, StickyNote
 } from "lucide-react";
 import { CustomDropdown } from "@/components/ui/custom-dropdown";
 import { MathJaxContext } from "better-react-mathjax";
@@ -146,15 +146,15 @@ export default function AIMentorPage() {
     setStudyPlanSuggestions(suggestions);
   }, [mounted, loading, readiness, topicMasteryMap, mistakes, calendarEvents]);
 
-  const handleAddSuggestionToCalendar = async (s: StudyPlanSuggestion) => {
+  const handleAddSuggestionToCalendar = async (s: StudyPlanSuggestion, date: string, priority: "Low" | "Medium" | "High") => {
     await addCalendarEvent({
       id: crypto.randomUUID(),
       title: s.title,
       description: s.reason,
       category: s.studyType === "Revision" ? "Revision" : s.studyType === "Mistakes" ? "Mistakes Review" : s.studyType === "Mock Test" ? "Mock Test" : "Study",
-      date: s.suggestedDate,
-      color: s.priority === "High" ? "#f43f5e" : s.priority === "Medium" ? "#f59e0b" : "#6366f1",
-      priority: s.priority,
+      date,
+      color: priority === "High" ? "#f43f5e" : priority === "Medium" ? "#f59e0b" : "#6366f1",
+      priority,
       completed: false,
       subject: s.subject,
       topic: s.topic,
@@ -166,6 +166,13 @@ export default function AIMentorPage() {
     setAddedSuggestionIds(prev => new Set(prev).add(s.id));
     useToastStore.getState().show(`"${s.title}" added to your calendar`);
   };
+
+  // Per-suggestion date/priority overrides — defaults to the engine's suggestion but
+  // lets the student pick a different target date/priority before committing it to
+  // the calendar, instead of the old one-click "take it or leave it" add.
+  const [suggestionOverrides, setSuggestionOverrides] = useState<Record<string, { date: string; priority: "Low" | "Medium" | "High" }>>({});
+  const getSuggestionOverride = (s: StudyPlanSuggestion) =>
+    suggestionOverrides[s.id] || { date: s.suggestedDate, priority: s.priority };
 
   const handleExportMarkdown = () => {
     const md = buildStudyReportMarkdown({
@@ -183,9 +190,10 @@ export default function AIMentorPage() {
       savedShortcuts,
       studyPlanSuggestions,
       timeline,
+      subjectMasteries,
     });
     downloadTextFile(`gate-os-study-report-${toLocalDateStr()}.md`, md);
-    useToastStore.getState().show("Study report exported as Markdown");
+    useToastStore.getState().show("Study report exported");
   };
 
   // Scan and discover mistakes patterns
@@ -212,10 +220,40 @@ export default function AIMentorPage() {
     buildTimeline();
   }, [mounted, loading, bookmarks, mistakes]);
 
-  // Filter bookmarked shortcuts list
+  // Filter bookmarked shortcuts list — deliberately excludes plain personal notes;
+  // see the fix in ai-tutor's handleSaveNotes for why aiShortcut alone is now a
+  // reliable "this is a saved shortcut" signal rather than a side effect of every note save.
   const savedShortcuts = useMemo(() => {
     return bookmarks.filter(b => b.isShortcutOnly || b.aiShortcut);
   }, [bookmarks]);
+
+  const [shortcutSearch, setShortcutSearch] = useState("");
+  const filteredShortcuts = useMemo(() => {
+    const q = shortcutSearch.trim().toLowerCase();
+    if (!q) return savedShortcuts;
+    return savedShortcuts.filter(b =>
+      b.subject.toLowerCase().includes(q) ||
+      b.topic.toLowerCase().includes(q) ||
+      (b.aiShortcut || "").toLowerCase().includes(q)
+    );
+  }, [savedShortcuts, shortcutSearch]);
+
+  // Saved Notes — the plain-note counterpart to the Shortcut Library above; any
+  // bookmark carrying real personal observations that ISN'T a shortcut entry.
+  const savedNotes = useMemo(() => {
+    return bookmarks.filter(b => !b.isShortcutOnly && !b.aiShortcut && (b.notes?.trim() || b.personalObservations?.trim()));
+  }, [bookmarks]);
+
+  const [notesSearch, setNotesSearch] = useState("");
+  const filteredNotes = useMemo(() => {
+    const q = notesSearch.trim().toLowerCase();
+    if (!q) return savedNotes;
+    return savedNotes.filter(b =>
+      b.subject.toLowerCase().includes(q) ||
+      b.topic.toLowerCase().includes(q) ||
+      (b.notes || b.personalObservations || "").toLowerCase().includes(q)
+    );
+  }, [savedNotes, notesSearch]);
 
   // Handle prerequisite diagnosis whenever a topic is selected. Uses the same
   // real MasteryEngine scores the rest of the app relies on (topicMasteryMap),
@@ -311,15 +349,10 @@ export default function AIMentorPage() {
                     <button
                       onClick={handleExportMarkdown}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                      title="Compile a full study report from your real progress, mistakes, readiness, and mentor data"
                     >
                       <Download className="w-3 h-3" />
-                      Export
-                    </button>
-                    <button
-                      onClick={() => window.print()}
-                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition text-[10px] font-bold uppercase tracking-wider cursor-pointer"
-                    >
-                      Print / PDF
+                      Export Report
                     </button>
                   </div>
                 </div>
@@ -380,6 +413,7 @@ export default function AIMentorPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {studyPlanSuggestions.map((s, idx) => {
                   const isAdded = addedSuggestionIds.has(s.id);
+                  const override = getSuggestionOverride(s);
                   return (
                     <motion.div
                       key={s.id}
@@ -394,16 +428,37 @@ export default function AIMentorPage() {
                             s.priority === "High" ? "bg-rose-500/10 text-rose-500" :
                             s.priority === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
                             "bg-indigo-500/10 text-indigo-500"
-                          }`}>{s.priority} Priority</span>
-                          <span className="text-[9px] font-bold text-[var(--text-muted)] font-mono">{s.suggestedDate}</span>
+                          }`}>Suggested: {s.priority}</span>
+                          <span className="text-[9px] font-bold text-[var(--text-muted)] font-mono">Was: {s.suggestedDate}</span>
                         </div>
                         <h4 className="font-extrabold text-xs text-[var(--text-primary)] leading-snug">{s.title}</h4>
                         <p className="text-[10px] text-[var(--text-secondary)] font-semibold leading-relaxed">{s.reason}</p>
                       </div>
+
+                      {!isAdded && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={override.date}
+                            onChange={(e) => setSuggestionOverrides(prev => ({ ...prev, [s.id]: { ...override, date: e.target.value } }))}
+                            className="flex-1 min-w-0 px-2 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[10px] font-bold text-[var(--text-primary)] outline-none"
+                          />
+                          <select
+                            value={override.priority}
+                            onChange={(e) => setSuggestionOverrides(prev => ({ ...prev, [s.id]: { ...override, priority: e.target.value as any } }))}
+                            className="px-2 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[10px] font-bold text-[var(--text-primary)] outline-none cursor-pointer"
+                          >
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                          </select>
+                        </div>
+                      )}
+
                       <motion.button
                         whileTap={{ scale: 0.96 }}
                         disabled={isAdded}
-                        onClick={() => handleAddSuggestionToCalendar(s)}
+                        onClick={() => handleAddSuggestionToCalendar(s, override.date, override.priority)}
                         className={`w-full flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition cursor-pointer ${
                           isAdded
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-default"
@@ -530,7 +585,8 @@ export default function AIMentorPage() {
                 </div>
               </div>
 
-              {/* Saved Shortcuts Library (Part 4) */}
+              {/* Saved Shortcuts Library (Part 4) — AI-generated tricks/shortcuts only;
+                  plain personal notes live in the separate Saved Notes card below. */}
               <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-3">
                   <h3 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
@@ -540,13 +596,30 @@ export default function AIMentorPage() {
                   <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded font-black uppercase">{savedShortcuts.length} Saved</span>
                 </div>
 
+                {savedShortcuts.length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      value={shortcutSearch}
+                      onChange={(e) => setShortcutSearch(e.target.value)}
+                      placeholder="Filter by subject, topic, or trick text..."
+                      className="w-full pl-9 pr-3 py-2 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-lg text-xs font-semibold text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+
                 {savedShortcuts.length === 0 ? (
                   <div className="p-8 text-center text-xs text-[var(--text-muted)] font-semibold border border-dashed border-[var(--border-subtle)] rounded-xl">
                     No shortcut tricks saved yet. Click "Save Shortcut" inside the AI Tutor workspace to build your custom memory cheat sheet!
                   </div>
+                ) : filteredShortcuts.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-[var(--text-muted)] font-semibold">
+                    No shortcuts match "{shortcutSearch}".
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {savedShortcuts.map((b, idx) => (
+                    {filteredShortcuts.map((b, idx) => (
                       <motion.div
                         key={b.questionId}
                         initial={{ opacity: 0, y: 8 }}
@@ -570,6 +643,59 @@ export default function AIMentorPage() {
                         <div className="p-3 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-lg text-xs leading-relaxed text-[var(--text-secondary)] font-medium">
                           <AstNodeRenderer nodes={AIResponseParser.parse(b.aiShortcut || "")} />
                         </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Saved Notes — plain personal notes/observations, kept separate from the
+                  AI-generated Shortcut Library above. */}
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-3">
+                  <h3 className="text-sm font-extrabold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                    <StickyNote className="w-4 h-4 text-indigo-500" />
+                    Saved Notes
+                  </h3>
+                  <span className="text-[10px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded font-black uppercase">{savedNotes.length} Saved</span>
+                </div>
+
+                {savedNotes.length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      value={notesSearch}
+                      onChange={(e) => setNotesSearch(e.target.value)}
+                      placeholder="Filter by subject, topic, or note text..."
+                      className="w-full pl-9 pr-3 py-2 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-lg text-xs font-semibold text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+
+                {savedNotes.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-[var(--text-muted)] font-semibold border border-dashed border-[var(--border-subtle)] rounded-xl">
+                    No personal notes saved yet. Click "Save Notes" inside the AI Tutor workspace to keep your own observations here.
+                  </div>
+                ) : filteredNotes.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-[var(--text-muted)] font-semibold">
+                    No notes match "{notesSearch}".
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredNotes.map((b, idx) => (
+                      <motion.div
+                        key={b.questionId}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(idx * 0.04, 0.3) }}
+                        className="bg-[var(--surface-secondary)]/50 border border-[var(--border-subtle)] p-4 rounded-xl space-y-2.5 shadow-sm hover-lift"
+                      >
+                        <span className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)]">{b.subject}</span>
+                        <h4 className="font-extrabold text-xs text-[var(--text-primary)]">{b.topic}</h4>
+                        <p className="p-3 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-lg text-xs leading-relaxed text-[var(--text-secondary)] font-medium whitespace-pre-wrap">
+                          {b.notes || b.personalObservations}
+                        </p>
                       </motion.div>
                     ))}
                   </div>

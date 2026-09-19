@@ -283,6 +283,11 @@ export default function AITutorWorkspace() {
   // Save notes locally to IndexedDB bookmark record
   const handleSaveNotes = async () => {
     if (!question) return;
+    // Deliberately does NOT set aiShortcut here — that field is the sole signal the
+    // Shortcut & Exam Trick Library (AI Mentor) uses to decide what counts as a saved
+    // shortcut vs a plain note. Setting it as a side effect of every "Save Notes" click
+    // (whenever an explanation happened to be loaded) polluted that library with regular
+    // notes; only handleSaveShortcut below should ever write aiShortcut.
     if (!activeBookmarkEntry) {
       // Auto-create bookmark to store notes
       await useStudyStore.getState().addBookmark(
@@ -296,7 +301,6 @@ export default function AITutorWorkspace() {
           personalObservations: personalNotes,
           aiPracticeQuestions: JSON.stringify(practiceQuestions),
           aiExplanation: explanation?.concept,
-          aiShortcut: explanation?.shortcut,
           aiFormula: JSON.stringify(explanation?.formulas || [])
         }
       );
@@ -307,7 +311,6 @@ export default function AITutorWorkspace() {
         personalObservations: personalNotes,
         aiPracticeQuestions: JSON.stringify(practiceQuestions),
         aiExplanation: explanation?.concept,
-        aiShortcut: explanation?.shortcut,
         aiFormula: JSON.stringify(explanation?.formulas || [])
       };
       await IDBManager.saveBookmark(updated);

@@ -36,6 +36,7 @@ export interface StudyReportInput {
   savedShortcuts: BookmarkEntry[];
   studyPlanSuggestions: StudyPlanSuggestion[];
   timeline: LearnerTimelineMilestone[];
+  subjectMasteries: { subject: string; masteryIndex: number; averageConfidence: number }[];
 }
 
 /**
@@ -79,6 +80,22 @@ export function buildStudyReportMarkdown(input: StudyReportInput): string {
   lines.push(`| Spaced Revision Debt | ${input.metrics.spacedRevisionDebt} items |`);
   lines.push(`| Burnout Risk | ${input.metrics.burnoutRisk} |`);
   lines.push(`| Days to Target Exam | ${input.metrics.daysToExam !== null ? input.metrics.daysToExam : "Not set"} |`);
+  lines.push(``);
+
+  lines.push(`## Subject Progress & Mastery`);
+  lines.push(``);
+  if (input.subjectMasteries.length === 0) {
+    lines.push(`_No subject performance data recorded yet._`);
+  } else {
+    lines.push(`| Subject | Mastery Index | Avg. Confidence |`);
+    lines.push(`|---|---|---|`);
+    input.subjectMasteries
+      .slice()
+      .sort((a, b) => a.masteryIndex - b.masteryIndex)
+      .forEach(s => {
+        lines.push(`| ${s.subject} | ${s.masteryIndex}% | ${s.averageConfidence}% |`);
+      });
+  }
   lines.push(``);
 
   lines.push(`## Mistake Cognitive Patterns`);
