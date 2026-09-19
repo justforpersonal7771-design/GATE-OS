@@ -29,11 +29,11 @@ export const useDataStore = create<DataState>((set, get) => ({
   totalTopics: 0,
   diagnostics: null,
 
-  initializeData: async (url = "/data/Aggregated_Output.json") => {
+  initializeData: async (url = "/api/dataset") => {
     return get().loadRepository(url);
   },
 
-  loadRepository: async (url = "/data/Aggregated_Output.json") => {
+  loadRepository: async (url = "/api/dataset") => {
     // Avoid re-initialization if already loaded
     if (get().isInitialized || get().isLoading) return;
 
@@ -70,7 +70,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
-  refreshRepository: async (url = "/data/Aggregated_Output.json") => {
+  refreshRepository: async (url = "/api/dataset") => {
     set({ isLoading: true, error: null });
     try {
       if (!QuestionRepository.isReady()) {

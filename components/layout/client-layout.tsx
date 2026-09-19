@@ -26,13 +26,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     loadRepository();
-    // Register PWA Service Worker
+    // Register PWA Service Worker. This effect runs after hydration, by which point the
+    // window's "load" event has typically already fired — a window.addEventListener("load",
+    // ...) registered here would never receive it, meaning registration silently never ran
+    // at all. Register directly instead; navigator.serviceWorker.register() is safe to call
+    // any time.
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js")
-          .then((reg) => console.log("SW registered:", reg.scope))
-          .catch((err) => console.warn("SW failed:", err));
-      });
+      navigator.serviceWorker.register("/sw.js")
+        .then((reg) => console.log("SW registered:", reg.scope))
+        .catch((err) => console.warn("SW failed:", err));
     }
   }, [loadRepository]);
 

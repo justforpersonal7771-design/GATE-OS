@@ -1,6 +1,6 @@
 import fs from "fs";
 import { FsmTokenizer } from "./lib/repository/transformers/fsm-tokenizer.ts";
-const data = JSON.parse(fs.readFileSync("public/data/Aggregated_Output.json", "utf-8"));
+const data = JSON.parse(fs.readFileSync("data/Aggregated_Output.json", "utf-8"));
 for (const paper of data) {
   for (const q of paper.questions) {
     if (q.question_text && q.question_text.indexOf("```") !== -1) {

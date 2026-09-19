@@ -1,17 +1,29 @@
-const CACHE_NAME = "gateos-pwa-cache-v1";
+const CACHE_NAME = "gateos-pwa-cache-v3";
 const ASSETS_TO_CACHE = [
   "/",
   "/manifest.json",
-  "/data/Aggregated_Output.json",
-  "/data/image-manifest.json",
-  "/globals.css"
+  "/api/dataset",
+  "/api/image-manifest",
 ];
 
 // Install Event
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      // cache.addAll() is all-or-nothing — a single failing URL (e.g. a stale entry that
+      // no longer resolves) silently drops precaching for every other entry too, with no
+      // visible error. Cache each entry independently instead so one bad URL can't take
+      // the rest down; genuinely missing entries just get skipped (and logged).
+      return Promise.all(
+        ASSETS_TO_CACHE.map((url) =>
+          fetch(url)
+            .then((res) => {
+              if (res.ok) return cache.put(url, res);
+              console.warn("SW precache skipped (non-OK response):", url, res.status);
+            })
+            .catch((err) => console.warn("SW precache skipped (fetch failed):", url, err))
+        )
+      );
     })
   );
   self.skipWaiting();
