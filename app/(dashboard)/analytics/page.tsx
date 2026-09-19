@@ -285,6 +285,43 @@ export default function AnalyticsDashboardPage() {
         </motion.div>
       </div>
 
+      {/* Time Efficiency Dashboard — the per-subject average time-per-question was
+          already being computed (AvgTimeSec, above) but never actually rendered anywhere;
+          this is real signal (GATE scoring assumes 108s/1-mark, 216s/2-mark) that was
+          being thrown away. */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm"
+      >
+        <h3 className="font-extrabold text-xs uppercase tracking-widest text-[var(--text-primary)] mb-1 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-amber-500" />
+          Time Efficiency by Subject
+        </h3>
+        <p className="text-[10px] text-[var(--text-muted)] font-semibold mb-5">Average seconds spent per question — GATE pacing assumes ~108s for 1-mark, ~216s for 2-mark questions.</p>
+        <div className="h-[260px] w-full">
+          {subjectData.length === 0 ? (
+            <ChartEmptyState label="Time-per-question data will appear once you complete a timed mock test." />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={subjectData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <RechartsTooltip cursor={{fill: 'var(--surface-secondary)'}} content={({ active, payload, label }: any) => active && payload?.length ? (
+                  <div className="bg-[var(--surface-elevated)] border border-[var(--border)] p-3 rounded-xl shadow-xl">
+                    <p className="font-bold text-[var(--text-primary)] mb-1 text-xs">{label}</p>
+                    <p className="text-xs font-semibold" style={{ color: payload[0].color }}>Avg Time: {payload[0].value}s / question</p>
+                  </div>
+                ) : null} />
+                <Bar dataKey="AvgTimeSec" name="Avg Seconds / Question" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </motion.div>
+
       {/* Subject Dashboard */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}

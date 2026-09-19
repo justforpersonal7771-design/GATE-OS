@@ -83,7 +83,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified
 - [x] Review Mode's Topbar should match the exam session Topbar exactly; strip out anything non-essential that's currently there instead. Rebuilt Review Mode's Topbar with the same 2-row structure as the exam session page. *(Review Mode #3)*
 
 **Analytics**
-- [ ] Needs more metrics/insight depth and a more premium visual treatment overall — currently thin. *(Analytics #1)*
+- [x] Needs more metrics/insight depth and a more premium visual treatment overall — currently thin. Added a "Time Efficiency by Subject" chart using per-subject average-seconds-per-question data that was already being computed (`AvgTimeSec`) but never actually rendered anywhere on the page — real signal (GATE pacing assumes ~108s/1-mark, ~216s/2-mark) that was being silently discarded. Broader visual redesign left as future work — this page already had a fairly rich HUD/insights/chart layout; the concrete, unambiguous gap was this unused computed data, not a wholesale visual overhaul. *(Analytics #1)*
 
 ## P3 — Polish / visual
 
